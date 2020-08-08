@@ -84,7 +84,7 @@ Image::is_frozen() const
 bool
 Image::includes(const Image *other) const
 {
-        g_assert_true(other != NULL);
+        assert(other != nullptr);
 
         return other->m_left >= m_left &&
                other->m_top >= m_top &&
@@ -164,7 +164,7 @@ Image::combine(Image *other, gulong char_width, gulong char_height)
 {
         cairo_t *cr;
 
-        g_assert_true(other != NULL);
+        assert(other != nullptr);
 
         gulong offsetx = (other->m_left - m_left) * char_width;
         gulong offsety = (other->m_top - m_top) * char_height;
@@ -249,7 +249,7 @@ Image::read_callback(void *closure, char *data, unsigned int length)
 {
         Image *image = (Image *)closure;
 
-        g_assert_true(image != NULL);
+        assert(image != nullptr);
 
         _vte_stream_read(image->m_stream, image->m_position + image->m_nread, data, length);
         image->m_nread += length;
@@ -262,7 +262,7 @@ Image::write_callback(void *closure, const char *data, unsigned int length)
 {
         Image *image = (Image *)closure;
 
-        g_assert_true (image != NULL);
+        assert(image != nullptr);
 
         _vte_stream_append(image->m_stream, data, length);
         image->m_nwrite += length;
