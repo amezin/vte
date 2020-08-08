@@ -27,16 +27,6 @@ namespace vte {
 
 namespace image {
 
-/* Test whether this image contains given image */
-bool
-Image::contains(const Image &other) const noexcept
-{
-        return other.m_left_cells >= m_left_cells &&
-               other.m_top_cells >= m_top_cells &&
-               other.m_left_cells + other.m_width_cells <= m_left_cells + m_width_cells &&
-               other.m_top_cells + other.m_height_cells <= m_top_cells + m_height_cells;
-}
-
 /* Paint the image with provided cairo context */
 void
 Image::paint(cairo_t *cr, int offset_x, int offset_y, int cell_width, int cell_height) const noexcept
