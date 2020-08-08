@@ -2118,12 +2118,12 @@ vteapp_window_constructed(GObject *object)
         vte_terminal_set_cursor_shape(window->terminal, options.cursor_shape);
         vte_terminal_set_enable_bidi(window->terminal, !options.no_bidi);
         vte_terminal_set_enable_shaping(window->terminal, !options.no_shaping);
+        vte_terminal_set_enable_sixel(window->terminal, !options.no_sixel);
         vte_terminal_set_mouse_autohide(window->terminal, true);
         vte_terminal_set_rewrap_on_resize(window->terminal, !options.no_rewrap);
         vte_terminal_set_scroll_on_output(window->terminal, false);
         vte_terminal_set_scroll_on_keystroke(window->terminal, true);
         vte_terminal_set_scrollback_lines(window->terminal, options.scrollback_lines);
-        vte_terminal_set_sixel_enabled(window->terminal, !options.no_sixel);
         vte_terminal_set_text_blink_mode(window->terminal, options.text_blink_mode);
 
         /* Style */
