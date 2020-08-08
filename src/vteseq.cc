@@ -4371,7 +4371,8 @@ Terminal::DECSIXEL(vte::parser::Sequence const& seq)
 
 	/* Parse image */
 
-	if (sixel_parser_init(&m_sixel_state, nfg, nbg, m_sixel_use_private_register) < 0) {
+	if (sixel_parser_init(&m_sixel_state, nfg, nbg,
+                              m_modes_private.XTERM_SIXEL_PRIVATE_COLOR_REGISTERS()) < 0) {
 		sixel_parser_deinit(&m_sixel_state);
 		return;
 	}
