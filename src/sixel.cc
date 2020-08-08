@@ -25,27 +25,28 @@
 
 #include "sixel.h"
 
-#define SIXEL_RGB(r, g, b) ((r) + ((g) << 8) +  ((b) << 16))
-#define PALVAL(n,a,m) (((n) * (a) + ((m) / 2)) / (m))
-#define SIXEL_XRGB(r,g,b) SIXEL_RGB(PALVAL(r, 255, 100), PALVAL(g, 255, 100), PALVAL(b, 255, 100))
+#define PACK_RGB(r, g, b) ((r) + ((g) << 8) +  ((b) << 16))
+#define SCALE_VALUE(n,a,m) (((n) * (a) + ((m) / 2)) / (m))
+#define SCALE_AND_PACK_RGB(r,g,b) \
+        PACK_RGB(SCALE_VALUE(r, 255, 100), SCALE_VALUE(g, 255, 100), SCALE_VALUE(b, 255, 100))
 
-static int const sixel_default_color_table[] = {
-        SIXEL_XRGB(0,  0,  0),   /*  0 Black    */
-        SIXEL_XRGB(20, 20, 80),  /*  1 Blue     */
-        SIXEL_XRGB(80, 13, 13),  /*  2 Red      */
-        SIXEL_XRGB(20, 80, 20),  /*  3 Green    */
-        SIXEL_XRGB(80, 20, 80),  /*  4 Magenta  */
-        SIXEL_XRGB(20, 80, 80),  /*  5 Cyan     */
-        SIXEL_XRGB(80, 80, 20),  /*  6 Yellow   */
-        SIXEL_XRGB(53, 53, 53),  /*  7 Gray 50% */
-        SIXEL_XRGB(26, 26, 26),  /*  8 Gray 25% */
-        SIXEL_XRGB(33, 33, 60),  /*  9 Blue*    */
-        SIXEL_XRGB(60, 26, 26),  /* 10 Red*     */
-        SIXEL_XRGB(33, 60, 33),  /* 11 Green*   */
-        SIXEL_XRGB(60, 33, 60),  /* 12 Magenta* */
-        SIXEL_XRGB(33, 60, 60),  /* 13 Cyan*    */
-        SIXEL_XRGB(60, 60, 33),  /* 14 Yellow*  */
-        SIXEL_XRGB(80, 80, 80),  /* 15 Gray 75% */
+static const int sixel_default_color_table[] = {
+        SCALE_AND_PACK_RGB(0,  0,  0),   /*  0 Black    */
+        SCALE_AND_PACK_RGB(20, 20, 80),  /*  1 Blue     */
+        SCALE_AND_PACK_RGB(80, 13, 13),  /*  2 Red      */
+        SCALE_AND_PACK_RGB(20, 80, 20),  /*  3 Green    */
+        SCALE_AND_PACK_RGB(80, 20, 80),  /*  4 Magenta  */
+        SCALE_AND_PACK_RGB(20, 80, 80),  /*  5 Cyan     */
+        SCALE_AND_PACK_RGB(80, 80, 20),  /*  6 Yellow   */
+        SCALE_AND_PACK_RGB(53, 53, 53),  /*  7 Gray 50% */
+        SCALE_AND_PACK_RGB(26, 26, 26),  /*  8 Gray 25% */
+        SCALE_AND_PACK_RGB(33, 33, 60),  /*  9 Blue*    */
+        SCALE_AND_PACK_RGB(60, 26, 26),  /* 10 Red*     */
+        SCALE_AND_PACK_RGB(33, 60, 33),  /* 11 Green*   */
+        SCALE_AND_PACK_RGB(60, 33, 60),  /* 12 Magenta* */
+        SCALE_AND_PACK_RGB(33, 60, 60),  /* 13 Cyan*    */
+        SCALE_AND_PACK_RGB(60, 60, 33),  /* 14 Yellow*  */
+        SCALE_AND_PACK_RGB(80, 80, 80),  /* 15 Gray 75% */
 };
 
 /*
@@ -61,6 +62,7 @@ hls_to_rgb(int hue, int lum, int sat)
 
     if (sat == 0) {
         r = g = b = lum;
+        return SCALE_AND_PACK_RGB(r, g, b);
     }
 
     /* https://wikimedia.org/api/rest_v1/media/math/render/svg/17e876f7e3260ea7fed73f69e19c71eb715dd09d */
@@ -69,7 +71,7 @@ hls_to_rgb(int hue, int lum, int sat)
     /* https://wikimedia.org/api/rest_v1/media/math/render/svg/f6721b57985ad83db3d5b800dc38c9980eedde1d */
     min = lum - sat * (100 - (lum > 50 ? 1 : -1) * ((lum << 1) - 100)) / 200.0;
 
-    /* HLS hue color ring is roteted -120 degree from HSL's one. */
+    /* HLS hue color ring is rotated -120 degree from HSL's one. */
     hue = (hue + 240) % 360;
 
     /* https://wikimedia.org/api/rest_v1/media/math/render/svg/937e8abdab308a22ff99de24d645ec9e70f1e384 */
@@ -107,54 +109,48 @@ hls_to_rgb(int hue, int lum, int sat)
         break;
     }
 
-    return SIXEL_XRGB(r, g, b);
+    return SCALE_AND_PACK_RGB(r, g, b);
 }
 
 static int
 set_default_color(sixel_image_t *image)
 {
-        int i;
-        int n;
-        int r;
-        int g;
-        int b;
+        int r, g, b;
+        int i, n;
 
-        /* palette initialization */
+        /* Palette initialization */
         for (n = 1; n < 17; n++) {
                 image->palette[n] = sixel_default_color_table[n - 1];
         }
 
-        /* colors 17-232 are a 6x6x6 color cube */
+        /* Colors 17-232 are a 6x6x6 color cube */
         for (r = 0; r < 6; r++) {
                 for (g = 0; g < 6; g++) {
                         for (b = 0; b < 6; b++) {
-                                image->palette[n++] = SIXEL_RGB(r * 51, g * 51, b * 51);
+                                image->palette[n++] = PACK_RGB(r * 51, g * 51, b * 51);
                         }
                 }
         }
 
-        /* colors 233-256 are a grayscale ramp, intentionally leaving out */
+        /* Colors 233-256 are a grayscale ramp */
         for (i = 0; i < 24; i++) {
-                image->palette[n++] = SIXEL_RGB(i * 11, i * 11, i * 11);
+                image->palette[n++] = PACK_RGB(i * 11, i * 11, i * 11);
         }
 
         for (; n < DECSIXEL_PALETTE_MAX; n++) {
-                image->palette[n] = SIXEL_RGB(255, 255, 255);
+                image->palette[n] = PACK_RGB(255, 255, 255);
         }
 
-        return (0);
+        return 0;
 }
 
 static int
-sixel_image_init(
-    sixel_image_t    *image,
-    int              width,
-    int              height,
-    int              fgcolor,
-    int              bgcolor,
-    int              use_private_register)
+sixel_image_init(sixel_image_t *image,
+                 int width, int height,
+                 int fgcolor, int bgcolor,
+                 int use_private_register)
 {
-        int status = (-1);
+        int status = -1;
         size_t size;
 
         size = (size_t)(width * height) * sizeof(sixel_color_no_t);
@@ -164,10 +160,9 @@ sixel_image_init(
         image->ncolors = 2;
         image->use_private_register = use_private_register;
 
-        if (image->data == NULL) {
-                status = (-1);
-                goto end;
-        }
+        if (image->data == NULL)
+                goto out;
+
         memset(image->data, 0, size);
 
         image->palette[0] = bgcolor;
@@ -177,20 +172,17 @@ sixel_image_init(
 
         image->palette_modified = 0;
 
-        status = (0);
+        status = 0;
 
-end:
+out:
         return status;
 }
 
 
 static int
-image_buffer_resize(
-    sixel_image_t   *image,
-    int              width,
-    int              height)
+image_buffer_resize(sixel_image_t *image, int width, int height)
 {
-        int status = (-1);
+        int status = -1;
         size_t size;
         sixel_color_no_t *alt_buffer;
         int n;
@@ -202,51 +194,82 @@ image_buffer_resize(
         size = (size_t)(width * height) * sizeof(sixel_color_no_t);
         alt_buffer = (sixel_color_no_t *)g_malloc(size);
         if (alt_buffer == NULL) {
-                /* free source image */
-                g_free(image->data);
-                image->data = NULL;
-                status = (-1);
-                goto end;
+                status = -1;
+                goto out;
         }
 
         min_height = height > image->height ? image->height: height;
-        if (width > image->width) {  /* if width is extended */
+        if (width > image->width) {
+                /* Wider */
                 for (n = 0; n < min_height; ++n) {
-                        /* copy from source image */
+                        /* Copy from source image */
                         memcpy(alt_buffer + width * n,
                                image->data + image->width * n,
                                (size_t)image->width * sizeof(sixel_color_no_t));
-                        /* fill extended area with background color */
+                        /* Fill extended area with background color */
                         memset(alt_buffer + width * n + image->width,
                                0,
                                (size_t)(width - image->width) * sizeof(sixel_color_no_t));
                 }
         } else {
+                /* Narrower or the same width */
                 for (n = 0; n < min_height; ++n) {
-                        /* copy from source image */
+                        /* Copy from source image */
                         memcpy(alt_buffer + width * n,
                                image->data + image->width * n,
                                (size_t)width * sizeof(sixel_color_no_t));
                 }
         }
 
-        if (height > image->height) {  /* if height is extended */
-                /* fill extended area with background color */
+        if (height > image->height) {
+                /* Fill extended area with background color */
                 memset(alt_buffer + width * image->height,
                        0,
                        (size_t)(width * (height - image->height)) * sizeof(sixel_color_no_t));
         }
 
-        /* free source image */
+        /* Free source image */
         g_free(image->data);
 
         image->data = alt_buffer;
         image->width = width;
         image->height = height;
 
-        status = (0);
+        status = 0;
 
-end:
+out:
+        if (status < 0) {
+                /* Free source image */
+                g_free(image->data);
+                image->data = NULL;
+        }
+
+        return status;
+}
+
+static int
+image_buffer_ensure_min_size(sixel_image_t *image, int req_width, int req_height)
+{
+        int status = 0;
+
+        if ((image->width < req_width || image->height < req_height)
+            && image->width < DECSIXEL_WIDTH_MAX && image->height < DECSIXEL_HEIGHT_MAX) {
+                int sx = image->width * 2;
+                int sy = image->height * 2;
+
+                while (sx < req_width || sy < req_height) {
+                        sx *= 2;
+                        sy *= 2;
+                }
+
+                if (sx > DECSIXEL_WIDTH_MAX)
+                        sx = DECSIXEL_WIDTH_MAX;
+                if (sy > DECSIXEL_HEIGHT_MAX)
+                        sy = DECSIXEL_HEIGHT_MAX;
+
+                status = image_buffer_resize(image, sx, sy);
+        }
+
         return status;
 }
 
@@ -257,18 +280,400 @@ sixel_image_deinit(sixel_image_t *image)
         image->data = NULL;
 }
 
+static int
+parser_transition(sixel_state_t *st, parse_state_t new_state)
+{
+        st->state = new_state;
+        st->nparams = 0;
+        st->param = -1;
+
+        return 0;
+}
+
+static int
+parser_push_param_ascii_dec_digit(sixel_state_t *st, uint32_t ascii_dec_digit)
+{
+        if (st->param < 0)
+                st->param = 0;
+
+        st->param = st->param * 10 + ascii_dec_digit - '0';
+        return 0;
+}
+
+static int
+parser_collect_param(sixel_state_t *st)
+{
+        if (st->param < 0 || st->nparams >= DECSIXEL_PARAMS_MAX)
+                return 0;
+
+        if (st->param > DECSIXEL_PARAMVALUE_MAX)
+                st->param = DECSIXEL_PARAMVALUE_MAX;
+
+        st->params[st->nparams++] = st->param;
+        st->param = -1;
+        return 0;
+}
+
+static int
+parser_collect_param_or_zero(sixel_state_t *st)
+{
+        if (st->param < 0)
+                st->param = 0;
+
+        parser_collect_param (st);
+        return 0;
+}
+
+static int
+parser_action_dcs_attributes(sixel_state_t *st)
+{
+        if (st->nparams > 0) {
+                /* Pn1 */
+                switch (st->params[0]) {
+                case 0:
+                case 1:
+                        st->attributed_pad = 2;
+                        break;
+                case 2:
+                        st->attributed_pad = 5;
+                        break;
+                case 3:
+                case 4:
+                        st->attributed_pad = 4;
+                        break;
+                case 5:
+                case 6:
+                        st->attributed_pad = 3;
+                        break;
+                case 7:
+                case 8:
+                        st->attributed_pad = 2;
+                        break;
+                case 9:
+                        st->attributed_pad = 1;
+                        break;
+                default:
+                        st->attributed_pad = 2;
+                        break;
+                }
+        }
+
+        if (st->nparams > 2) {
+                /* Pn3 */
+                if (st->params[2] == 0)
+                        st->params[2] = 10;
+                st->attributed_pan = st->attributed_pan * st->params[2] / 10;
+                st->attributed_pad = st->attributed_pad * st->params[2] / 10;
+                if (st->attributed_pan <= 0)
+                        st->attributed_pan = 1;
+                if (st->attributed_pad <= 0)
+                        st->attributed_pad = 1;
+        }
+
+        return 0;
+}
+
+static void
+draw_sixels(sixel_state_t *st, uint32_t bits)
+{
+        sixel_image_t *image = &st->image;
+
+        if (bits == 0)
+                return;
+
+        if (st->repeat_count <= 1) {
+                uint32_t sixel_vertical_mask = 0x01;
+
+                for (int i = 0; i < 6; i++) {
+                        if ((bits & sixel_vertical_mask) != 0) {
+                                int pos = image->width * (st->pos_y + i) + st->pos_x;
+                                image->data[pos] = st->color_index;
+                                if (st->max_x < st->pos_x)
+                                        st->max_x = st->pos_x;
+                                if (st->max_y < (st->pos_y + i))
+                                        st->max_y = st->pos_y + i;
+                        }
+                        sixel_vertical_mask <<= 1;
+                }
+        } else {
+                uint32_t sixel_vertical_mask = 0x01;
+
+                /* st->repeat_count > 1 */
+                for (int i = 0; i < 6; i++) {
+                        if ((bits & sixel_vertical_mask) != 0) {
+                                uint32_t c = sixel_vertical_mask << 1;
+                                int n;
+
+                                for (n = 1; (i + n) < 6; n++) {
+                                        if ((bits & c) == 0)
+                                                break;
+                                        c <<= 1;
+                                }
+                                for (int y = st->pos_y + i; y < st->pos_y + i + n; ++y) {
+                                        for (int x = st->pos_x; x < st->pos_x + st->repeat_count; ++x)
+                                                image->data[image->width * y + x] = st->color_index;
+                                }
+                                if (st->max_x < (st->pos_x + st->repeat_count - 1))
+                                        st->max_x = st->pos_x + st->repeat_count - 1;
+                                if (st->max_y < (st->pos_y + i + n - 1))
+                                        st->max_y = st->pos_y + i + n - 1;
+                                i += (n - 1);
+                                sixel_vertical_mask <<= (n - 1);
+                        }
+
+                        sixel_vertical_mask <<= 1;
+                }
+        }
+}
+
+static int
+parser_action_sixel_char(sixel_state_t *st, uint32_t raw)
+{
+        sixel_image_t *image = &st->image;
+        int status = -1;
+
+        if (raw >= '?' && raw <= '~') {
+                status = image_buffer_ensure_min_size (image,
+                                                       st->pos_x + st->repeat_count,
+                                                       st->pos_y + 6);
+                if (status < 0)
+                        goto out;
+
+                if (st->color_index > image->ncolors)
+                        image->ncolors = st->color_index;
+
+                st->repeat_count = MIN(st->repeat_count, image->width - st->pos_x);
+
+                if (st->repeat_count > 0 && st->pos_y + 5 < image->height) {
+                        uint32_t bits = raw - '?';
+                        draw_sixels(st, bits);
+                }
+
+                if (st->repeat_count > 0)
+                        st->pos_x += st->repeat_count;
+                st->repeat_count = 1;
+        }
+
+        status = 0;
+
+out:
+        return status;
+}
+
+static int
+parser_action_decgcr(sixel_state_t *st)
+{
+        st->pos_x = 0;
+        return 0;
+}
+
+static int
+parser_action_decgnl(sixel_state_t *st)
+{
+        st->pos_x = 0;
+
+        if (st->pos_y < DECSIXEL_HEIGHT_MAX - 5 - 6)
+                st->pos_y += 6;
+        else
+                st->pos_y = DECSIXEL_HEIGHT_MAX + 1;
+
+        return 0;
+}
+
+
+static int
+parser_action_decgra(sixel_state_t *st)
+{
+        sixel_image_t *image = &st->image;
+        int status = 0;
+
+        if (st->nparams > 0)
+                st->attributed_pad = st->params[0];
+        if (st->nparams > 1)
+                st->attributed_pan = st->params[1];
+        if (st->nparams > 2 && st->params[2] > 0)
+                st->attributed_ph = st->params[2];
+        if (st->nparams > 3 && st->params[3] > 0)
+                st->attributed_pv = st->params[3];
+
+        if (st->attributed_pan <= 0)
+                st->attributed_pan = 1;
+        if (st->attributed_pad <= 0)
+                st->attributed_pad = 1;
+
+        if (image->width < st->attributed_ph ||
+            image->height < st->attributed_pv) {
+                int sx = MIN (MAX (image->width, st->attributed_ph), DECSIXEL_WIDTH_MAX);
+                int sy = MIN (MAX (image->height, st->attributed_pv), DECSIXEL_HEIGHT_MAX);
+
+                status = image_buffer_resize(image, sx, sy);
+        }
+
+        return status;
+}
+
+static int
+parser_action_decgri(sixel_state_t *st)
+{
+        st->repeat_count = MAX (st->param, 1);
+        return 0;
+}
+
+static int
+parser_action_decgci(sixel_state_t *st)
+{
+        sixel_image_t *image = &st->image;
+
+        if (st->nparams > 0) {
+                st->color_index = 1 + st->params[0];  /* offset 1 (background color) added */
+                if (st->color_index < 0)
+                        st->color_index = 0;
+                else if (st->color_index >= DECSIXEL_PALETTE_MAX)
+                        st->color_index = DECSIXEL_PALETTE_MAX - 1;
+        }
+
+        if (st->nparams > 4) {
+                st->image.palette_modified = 1;
+                if (st->params[1] == 1) {
+                        /* HLS */
+                        if (st->params[2] > 360)
+                                st->params[2] = 360;
+                        if (st->params[3] > 100)
+                                st->params[3] = 100;
+                        if (st->params[4] > 100)
+                                st->params[4] = 100;
+                        image->palette[st->color_index]
+                                = hls_to_rgb(st->params[2], st->params[3], st->params[4]);
+                } else if (st->params[1] == 2) {
+                        /* RGB */
+                        if (st->params[2] > 100)
+                                st->params[2] = 100;
+                        if (st->params[3] > 100)
+                                st->params[3] = 100;
+                        if (st->params[4] > 100)
+                                st->params[4] = 100;
+                        image->palette[st->color_index]
+                                = SCALE_AND_PACK_RGB(st->params[2], st->params[3], st->params[4]);
+                }
+        }
+
+        return 0;
+}
+
+static int
+parser_feed_char(sixel_state_t *st, uint32_t raw)
+{
+        int status = -1;
+
+        for (;;) {
+                switch (st->state) {
+                case PS_ESC:
+                        switch (raw) {
+                        case '\\':
+                        case 0x9c:
+                                return 0;
+                        case 'P':
+                                return parser_transition(st, PS_DCS);
+                        }
+                        return 0;
+
+                case PS_DCS:
+                        switch (raw) {
+                        case 0x1b:
+                                return parser_transition(st, PS_ESC);
+                        case '0' ... '9':
+                                return parser_push_param_ascii_dec_digit(st, raw);
+                        case ';':
+                                return parser_collect_param_or_zero(st);
+                        case 'q':
+                                parser_collect_param(st);
+                                parser_action_dcs_attributes(st);
+                                return parser_transition(st, PS_DECSIXEL);
+                        }
+                        return 0;
+
+                case PS_DECSIXEL:
+                        switch (raw) {
+                        case 0x1b:
+                                return parser_transition(st, PS_ESC);
+                        case '"':
+                                return parser_transition(st, PS_DECGRA);
+                        case '!':
+                                return parser_transition(st, PS_DECGRI);
+                        case '#':
+                                return parser_transition(st, PS_DECGCI);
+                        case '$':
+                                /* DECGCR Graphics Carriage Return */
+                                return parser_action_decgcr(st);
+                        case '-':
+                                /* DECGNL Graphics Next Line */
+                                return parser_action_decgnl(st);
+                        }
+                        return parser_action_sixel_char(st, raw);
+
+                case PS_DECGRA:
+                        /* DECGRA Set Raster Attributes " Pan; Pad; Ph; Pv */
+                        switch (raw) {
+                        case 0x1b:
+                                return parser_transition(st, PS_ESC);
+                        case '0' ... '9':
+                                return parser_push_param_ascii_dec_digit(st, raw);
+                        case ';':
+                                return parser_collect_param(st);
+                        }
+
+                        parser_collect_param(st);
+                        status = parser_action_decgra(st);
+                        if (status < 0)
+                                return status;
+                        parser_transition(st, PS_DECSIXEL);
+                        continue;
+
+                case PS_DECGRI:
+                        /* DECGRI Graphics Repeat Introducer ! Pn Ch */
+                        switch (raw) {
+                        case 0x1b:
+                                return parser_transition(st, PS_ESC);
+                        case '0' ... '9':
+                                return parser_push_param_ascii_dec_digit(st, raw);
+                        }
+
+                        parser_action_decgri(st);
+                        parser_transition(st, PS_DECSIXEL);
+                        continue;
+
+                case PS_DECGCI:
+                        /* DECGCI Graphics Color Introducer # Pc; Pu; Px; Py; Pz */
+                        switch (raw) {
+                        case 0x1b:
+                                return parser_transition(st, PS_ESC);
+                        case '0' ... '9':
+                                return parser_push_param_ascii_dec_digit(st, raw);
+                        case ';':
+                                return parser_collect_param_or_zero(st);
+                        }
+
+                        parser_collect_param(st);
+                        parser_action_decgci(st);
+                        parser_transition(st, PS_DECSIXEL);
+                        continue;
+                }
+        } /* for (;;) */
+}
+
 int
 sixel_parser_init(sixel_state_t *st,
                   int fgcolor, int bgcolor,
                   int use_private_register)
 {
-        int status = (-1);
+        int status = -1;
 
         /* FIXME-hpj: This used to be PS_DCS, but the VTE sequence parses the
          * initial parameters for us, up to and including the leading 'q'. We
          * therefore skip directly to the PS_DECSIXEL state.
          *
          * We may need to pass the initial parameters to this parser. */
+
         st->state = PS_DECSIXEL;
         st->pos_x = 0;
         st->pos_y = 0;
@@ -281,24 +686,23 @@ sixel_parser_init(sixel_state_t *st,
         st->repeat_count = 1;
         st->color_index = 16;
         st->nparams = 0;
-        st->param = 0;
+        st->param = -1;
 
-        /* buffer initialization */
         status = sixel_image_init(&st->image, 1, 1, fgcolor, bgcolor, use_private_register);
 
         return status;
 }
 
-int
-sixel_parser_set_default_color(sixel_state_t *st)
+void
+sixel_parser_deinit(sixel_state_t *st)
 {
-        return set_default_color(&st->image);
+        sixel_image_deinit(&st->image);
 }
 
 int
 sixel_parser_finalize(sixel_state_t *st, unsigned char *pixels)
 {
-        int status = (-1);
+        int status = -1;
         int sx;
         int sy;
         sixel_image_t *image = &st->image;
@@ -317,15 +721,15 @@ sixel_parser_finalize(sixel_state_t *st, unsigned char *pixels)
         sy = st->max_y;
 
         status = image_buffer_resize(image,
-                                     MIN (image->width, sx),
-                                     MIN (image->height, sy));
+                                     MIN(image->width, sx),
+                                     MIN(image->height, sy));
         if (status < 0)
-                goto end;
+                goto out;
 
         if (image->use_private_register && image->ncolors > 2 && !image->palette_modified) {
                 status = set_default_color(image);
                 if (status < 0)
-                        goto end;
+                        goto out;
         }
 
         src = st->image.data;
@@ -355,378 +759,18 @@ sixel_parser_finalize(sixel_state_t *st, unsigned char *pixels)
                 }
         }
 
-        status = (0);
-
-end:
-        return status;
-}
-
-static int
-feed_char(sixel_state_t *st, uint32_t raw)
-{
-        sixel_image_t *image = &st->image;
-        int n, i, x, y;
-        int bits;
-        int sixel_vertical_mask;
-        int sx, sy;
-        int c, pos;
-        int status = -1;
-
-again:
-        switch (st->state) {
-        case PS_ESC:
-                switch (raw) {
-                case '\\':
-                case 0x9c:
-                        break;
-                case 'P':
-                        st->param = -1;
-                        st->state = PS_DCS;
-                        break;
-                default:
-                        break;
-                }
-                break;
-
-        case PS_DCS:
-                switch (raw) {
-                case 0x1b:
-                        st->state = PS_ESC;
-                        break;
-
-                case '0' ... '9':
-                        if (st->param < 0)
-                                st->param = 0;
-                        st->param = st->param * 10 + raw - '0';
-                        break;
-
-                case ';':
-                        if (st->param < 0) {
-                                st->param = 0;
-                        }
-                        if (st->nparams < DECSIXEL_PARAMS_MAX) {
-                                st->params[st->nparams++] = st->param;
-                        }
-                        st->param = 0;
-                        break;
-
-                case 'q':
-                        if (st->param >= 0 && st->nparams < DECSIXEL_PARAMS_MAX) {
-                                st->params[st->nparams++] = st->param;
-                        }
-                        if (st->nparams > 0) {
-                                /* Pn1 */
-                                switch (st->params[0]) {
-                                        case 0:
-                                        case 1:
-                                                st->attributed_pad = 2;
-                                                break;
-                                        case 2:
-                                                st->attributed_pad = 5;
-                                                break;
-                                        case 3:
-                                        case 4:
-                                                st->attributed_pad = 4;
-                                                break;
-                                        case 5:
-                                        case 6:
-                                                st->attributed_pad = 3;
-                                                break;
-                                        case 7:
-                                        case 8:
-                                                st->attributed_pad = 2;
-                                                break;
-                                        case 9:
-                                                st->attributed_pad = 1;
-                                                break;
-                                        default:
-                                                st->attributed_pad = 2;
-                                                break;
-                                }
-                        }
-
-                        if (st->nparams > 2) {
-                                /* Pn3 */
-                                if (st->params[2] == 0)
-                                        st->params[2] = 10;
-                                st->attributed_pan = st->attributed_pan * st->params[2] / 10;
-                                st->attributed_pad = st->attributed_pad * st->params[2] / 10;
-                                if (st->attributed_pan <= 0)
-                                        st->attributed_pan = 1;
-                                if (st->attributed_pad <= 0)
-                                        st->attributed_pad = 1;
-                        }
-                        st->nparams = 0;
-                        st->state = PS_DECSIXEL;
-                        break;
-
-                default:
-                        break;
-                }
-                break;
-
-        case PS_DECSIXEL:
-                switch (raw) {
-                case '\x1b':
-                        st->state = PS_ESC;
-                        break;
-                case '"':
-                        st->param = 0;
-                        st->nparams = 0;
-                        st->state = PS_DECGRA;
-                        break;
-                case '!':
-                        st->param = 0;
-                        st->nparams = 0;
-                        st->state = PS_DECGRI;
-                        break;
-                case '#':
-                        st->param = 0;
-                        st->nparams = 0;
-                        st->state = PS_DECGCI;
-                        break;
-                case '$':
-                        /* DECGCR Graphics Carriage Return */
-                        st->pos_x = 0;
-                        break;
-                case '-':
-                        /* DECGNL Graphics Next Line */
-                        st->pos_x = 0;
-                        if (st->pos_y < DECSIXEL_HEIGHT_MAX - 5 - 6)
-                                st->pos_y += 6;
-                        else
-                                st->pos_y = DECSIXEL_HEIGHT_MAX + 1;
-                        break;
-                default:
-                        if (raw >= '?' && raw <= '~') {  /* sixel characters */
-                                if ((image->width < (st->pos_x + st->repeat_count) || image->height < (st->pos_y + 6))
-                                    && image->width < DECSIXEL_WIDTH_MAX && image->height < DECSIXEL_HEIGHT_MAX) {
-                                        sx = image->width * 2;
-                                        sy = image->height * 2;
-                                        while (sx < (st->pos_x + st->repeat_count) || sy < (st->pos_y + 6)) {
-                                                sx *= 2;
-                                                sy *= 2;
-                                        }
-
-                                        if (sx > DECSIXEL_WIDTH_MAX)
-                                                sx = DECSIXEL_WIDTH_MAX;
-                                        if (sy > DECSIXEL_HEIGHT_MAX)
-                                                sy = DECSIXEL_HEIGHT_MAX;
-
-                                        status = image_buffer_resize(image, sx, sy);
-                                        if (status < 0)
-                                                goto out;
-                                }
-
-                                if (st->color_index > image->ncolors)
-                                        image->ncolors = st->color_index;
-
-                                if (st->pos_x + st->repeat_count > image->width)
-                                        st->repeat_count = image->width - st->pos_x;
-
-                                if (st->repeat_count > 0 && st->pos_y + 5 < image->height) {
-                                        bits = raw - '?';
-                                        if (bits != 0) {
-                                                sixel_vertical_mask = 0x01;
-                                                if (st->repeat_count <= 1) {
-                                                        for (i = 0; i < 6; i++) {
-                                                                if ((bits & sixel_vertical_mask) != 0) {
-                                                                        pos = image->width * (st->pos_y + i) + st->pos_x;
-                                                                        image->data[pos] = st->color_index;
-                                                                        if (st->max_x < st->pos_x)
-                                                                                st->max_x = st->pos_x;
-                                                                        if (st->max_y < (st->pos_y + i))
-                                                                                st->max_y = st->pos_y + i;
-                                                                }
-                                                                sixel_vertical_mask <<= 1;
-                                                        }
-                                                } else {
-                                                        /* st->repeat_count > 1 */
-                                                        for (i = 0; i < 6; i++) {
-                                                                if ((bits & sixel_vertical_mask) != 0) {
-                                                                        c = sixel_vertical_mask << 1;
-                                                                        for (n = 1; (i + n) < 6; n++) {
-                                                                                if ((bits & c) == 0)
-                                                                                        break;
-                                                                                c <<= 1;
-                                                                        }
-                                                                        for (y = st->pos_y + i; y < st->pos_y + i + n; ++y) {
-                                                                                for (x = st->pos_x; x < st->pos_x + st->repeat_count; ++x)
-                                                                                        image->data[image->width * y + x] = st->color_index;
-                                                                        }
-                                                                        if (st->max_x < (st->pos_x + st->repeat_count - 1))
-                                                                                st->max_x = st->pos_x + st->repeat_count - 1;
-                                                                        if (st->max_y < (st->pos_y + i + n - 1))
-                                                                                st->max_y = st->pos_y + i + n - 1;
-                                                                        i += (n - 1);
-                                                                        sixel_vertical_mask <<= (n - 1);
-                                                                }
-                                                                sixel_vertical_mask <<= 1;
-                                                        }
-                                                }
-                                        }
-                                }
-                                if (st->repeat_count > 0)
-                                        st->pos_x += st->repeat_count;
-                                st->repeat_count = 1;
-                        }
-                        break;
-                }
-                break;
-
-        case PS_DECGRA:
-                /* DECGRA Set Raster Attributes " Pan; Pad; Ph; Pv */
-                switch (raw) {
-                case '\x1b':
-                        st->state = PS_ESC;
-                        break;
-                case '0' ... '9':
-                        st->param = st->param * 10 + raw - '0';
-                        if (st->param > DECSIXEL_PARAMVALUE_MAX)
-                                st->param = DECSIXEL_PARAMVALUE_MAX;
-                        break;
-                case ';':
-                        if (st->nparams < DECSIXEL_PARAMS_MAX)
-                                st->params[st->nparams++] = st->param;
-                        st->param = 0;
-                        break;
-                default:
-                        if (st->nparams < DECSIXEL_PARAMS_MAX)
-                                st->params[st->nparams++] = st->param;
-                        if (st->nparams > 0)
-                                st->attributed_pad = st->params[0];
-                        if (st->nparams > 1)
-                                st->attributed_pan = st->params[1];
-                        if (st->nparams > 2 && st->params[2] > 0)
-                                st->attributed_ph = st->params[2];
-                        if (st->nparams > 3 && st->params[3] > 0)
-                                st->attributed_pv = st->params[3];
-
-                        if (st->attributed_pan <= 0)
-                                st->attributed_pan = 1;
-                        if (st->attributed_pad <= 0)
-                                st->attributed_pad = 1;
-
-                        if (image->width < st->attributed_ph ||
-                            image->height < st->attributed_pv) {
-                                sx = st->attributed_ph;
-                                if (image->width > st->attributed_ph)
-                                        sx = image->width;
-
-                                sy = st->attributed_pv;
-                                if (image->height > st->attributed_pv)
-                                        sy = image->height;
-
-                                if (sx > DECSIXEL_WIDTH_MAX)
-                                        sx = DECSIXEL_WIDTH_MAX;
-                                if (sy > DECSIXEL_HEIGHT_MAX)
-                                        sy = DECSIXEL_HEIGHT_MAX;
-
-                                status = image_buffer_resize(image, sx, sy);
-                                if (status < 0)
-                                        goto out;
-                        }
-                        st->state = PS_DECSIXEL;
-                        st->param = 0;
-                        st->nparams = 0;
-                        /* FIXME: No p++ increment here */
-                        goto again;
-                }
-                break;
-
-        case PS_DECGRI:
-                /* DECGRI Graphics Repeat Introducer ! Pn Ch */
-                switch (raw) {
-                case '\x1b':
-                        st->state = PS_ESC;
-                        break;
-                case '0' ... '9':
-                        st->param = st->param * 10 + raw - '0';
-                        if (st->param > DECSIXEL_PARAMVALUE_MAX)
-                                st->param = DECSIXEL_PARAMVALUE_MAX;
-                        break;
-                default:
-                        st->repeat_count = st->param;
-                        if (st->repeat_count == 0)
-                                st->repeat_count = 1;
-                        st->state = PS_DECSIXEL;
-                        st->param = 0;
-                        st->nparams = 0;
-                        /* FIXME: No p++ increment here */
-                        goto again;
-                }
-                break;
-
-        case PS_DECGCI:
-                /* DECGCI Graphics Color Introducer # Pc; Pu; Px; Py; Pz */
-                switch (raw) {
-                case '\x1b':
-                        st->state = PS_ESC;
-                        break;
-                case '0' ... '9':
-                        st->param = st->param * 10 + raw - '0';
-                        if (st->param > DECSIXEL_PARAMVALUE_MAX)
-                                st->param = DECSIXEL_PARAMVALUE_MAX;
-                        break;
-                case ';':
-                        if (st->nparams < DECSIXEL_PARAMS_MAX)
-                                st->params[st->nparams++] = st->param;
-                        st->param = 0;
-                        break;
-                default:
-                        st->state = PS_DECSIXEL;
-                        if (st->nparams < DECSIXEL_PARAMS_MAX)
-                                st->params[st->nparams++] = st->param;
-                        st->param = 0;
-
-                        if (st->nparams > 0) {
-                                st->color_index = 1 + st->params[0];  /* offset 1(background color) added */
-                                if (st->color_index < 0)
-                                        st->color_index = 0;
-                                else if (st->color_index >= DECSIXEL_PALETTE_MAX)
-                                        st->color_index = DECSIXEL_PALETTE_MAX - 1;
-                        }
-
-                        if (st->nparams > 4) {
-                                st->image.palette_modified = 1;
-                                if (st->params[1] == 1) {
-                                        /* HLS */
-                                        if (st->params[2] > 360)
-                                                st->params[2] = 360;
-                                        if (st->params[3] > 100)
-                                                st->params[3] = 100;
-                                        if (st->params[4] > 100)
-                                                st->params[4] = 100;
-                                        image->palette[st->color_index]
-                                                = hls_to_rgb(st->params[2], st->params[3], st->params[4]);
-                                } else if (st->params[1] == 2) {
-                                        /* RGB */
-                                        if (st->params[2] > 100)
-                                                st->params[2] = 100;
-                                        if (st->params[3] > 100)
-                                                st->params[3] = 100;
-                                        if (st->params[4] > 100)
-                                                st->params[4] = 100;
-                                        image->palette[st->color_index]
-                                                = SIXEL_XRGB(st->params[2], st->params[3], st->params[4]);
-                                }
-                        }
-                        /* FIXME: No p++ increment here */
-                        goto again;
-                }
-                break;
-
-        default:
-                break;
-        }
-
         status = 0;
 
 out:
         return status;
 }
 
-/* convert sixel data into indexed pixel bytes and palette data */
+int
+sixel_parser_set_default_color(sixel_state_t *st)
+{
+        return set_default_color(&st->image);
+}
+
 int
 sixel_parser_feed(sixel_state_t *st, const uint32_t *raw, size_t len)
 {
@@ -736,16 +780,10 @@ sixel_parser_feed(sixel_state_t *st, const uint32_t *raw, size_t len)
                 return -1;
 
         for (const uint32_t *p = raw; p < raw + len; p++) {
-                status = feed_char(st, *p);
+                status = parser_feed_char(st, *p);
                 if (status < 0)
                         break;
         }
 
         return status;
-}
-
-void
-sixel_parser_deinit(sixel_state_t *st)
-{
-        sixel_image_deinit(&st->image);
 }
