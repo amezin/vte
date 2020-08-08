@@ -69,6 +69,7 @@ public:
         gboolean no_scrollbar{false};
         gboolean no_shaping{false};
         gboolean no_shell{false};
+        gboolean no_sixel{false};
         gboolean no_systemd_scope{false};
         gboolean object_notifications{false};
         gboolean require_systemd_scope{false};
@@ -559,6 +560,8 @@ public:
                           "Disable Arabic shaping", nullptr },
                         { "no-shell", 'S', 0, G_OPTION_ARG_NONE, &no_shell,
                           "Disable spawning a shell inside the terminal", nullptr },
+                        { "no-sixel", 0, 0, G_OPTION_ARG_NONE, &no_sixel,
+                          "Disable SIXEL images", nullptr },
                         { "no-systemd-scope", 0, 0, G_OPTION_ARG_NONE, &no_systemd_scope,
                           "Don't use systemd user scope", nullptr },
                         { "object-notifications", 'N', 0, G_OPTION_ARG_NONE, &object_notifications,
@@ -571,6 +574,8 @@ public:
                           "Require use of a systemd user scope", nullptr },
                         { "scrollback-lines", 'n', 0, G_OPTION_ARG_INT, &scrollback_lines,
                           "Specify the number of scrollback-lines (-1 for infinite)", nullptr },
+                        { "sixel", 0, G_OPTION_FLAG_REVERSE, G_OPTION_ARG_NONE, &no_sixel,
+                          "Enable SIXEL images", nullptr },
                         { "transparent", 'T', 0, G_OPTION_ARG_INT, &transparency_percent,
                           "Enable the use of a transparent background", "0..100" },
                         { "verbose", 'v', G_OPTION_FLAG_NO_ARG, G_OPTION_ARG_CALLBACK,
@@ -2118,6 +2123,7 @@ vteapp_window_constructed(GObject *object)
         vte_terminal_set_scroll_on_output(window->terminal, false);
         vte_terminal_set_scroll_on_keystroke(window->terminal, true);
         vte_terminal_set_scrollback_lines(window->terminal, options.scrollback_lines);
+        vte_terminal_set_sixel_enabled(window->terminal, !options.no_sixel);
         vte_terminal_set_text_blink_mode(window->terminal, options.text_blink_mode);
 
         /* Style */
