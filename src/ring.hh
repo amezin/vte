@@ -104,17 +104,8 @@ public:
                             GCancellable* cancellable,
                             GError** error);
 
-        /* FIXME-hpj: These should be private, but are being accessed from the Terminal class for now:
-         *
-         * >>> */
-
-        int m_next_image_priority;
-
         std::map<gint, vte::image::Image *> *m_image_by_top_map;
         std::map<int, vte::image::Image *> *m_image_priority_map;
-        unsigned int m_image_fast_memory_used;
-
-        /* <<< */
 
 private:
 
@@ -251,6 +242,11 @@ private:
         hyperlink_idx_t m_hyperlink_hover_idx{0};  /* The hyperlink idx of the hovered cell.
                                                  An idx is allocated on hover even if the cell is scrolled out to the streams. */
         row_t m_hyperlink_maybe_gc_counter{0};  /* Do a GC when it reaches 65536. */
+
+        /* Image bookkeeping */
+
+        int m_next_image_priority;
+        unsigned int m_image_fast_memory_used;
 };
 
 }; /* namespace base */
