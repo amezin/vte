@@ -8865,15 +8865,10 @@ Terminal::draw_rows(VteScreen *screen_,
                         nhilite = (nhyperlink && cell->attr.hyperlink_idx == m_hyperlink_hover_idx) ||
                                   (!nhyperlink && regex_match_has_current() && m_match_span.contains(row, lcol));
                         if (cell->c == 0 ||
-                                ((cell->c == ' ' || cell->c == '\t') &&  // FIXME '\t' is newly added now, double check
-                                 cell->attr.has_none(VTE_ATTR_UNDERLINE_MASK |
-                                                     VTE_ATTR_STRIKETHROUGH_MASK |
-                                                     VTE_ATTR_OVERLINE_MASK) &&
-                                 !nhyperlink &&
-                                 !nhilite) ||
                             cell->attr.fragment() ||
                             cell->attr.invisible()) {
-                                /* Skip empty or fragment cell. */
+                                /* Skip empty or fragment cell, but erase on ' ' and '\t', since
+                                 * it may be overwriting an image. */
                                 lcol++;
                                 continue;
                         }
