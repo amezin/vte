@@ -18,6 +18,8 @@
 
 #pragma once
 
+#include <stdint.h>
+
 #define DECSIXEL_PARAMS_MAX 16
 #define DECSIXEL_PALETTE_MAX 1024
 #define DECSIXEL_PARAMVALUE_MAX 65535
@@ -64,7 +66,7 @@ typedef struct parser_context {
 } sixel_state_t;
 
 int sixel_parser_init(sixel_state_t *st, int fgcolor, int bgcolor, int use_private_register);
-int sixel_parser_parse(sixel_state_t *st, unsigned char *p, size_t len);
+int sixel_parser_feed(sixel_state_t *st, const uint32_t *p, size_t len);
 int sixel_parser_set_default_color(sixel_state_t *st);
 int sixel_parser_finalize(sixel_state_t *st, unsigned char *pixels);
 void sixel_parser_deinit(sixel_state_t *st);
