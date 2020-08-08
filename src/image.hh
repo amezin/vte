@@ -25,19 +25,20 @@ namespace image {
 
 struct Image {
 private:
-        gint m_left;                /* left position in cell unit at the vte virtual screen */
-        gint m_width;               /* width in cell unit */
-        gint m_top;                 /* top position in cell unit at the vte virtual screen */
-        gint m_height;              /* height in cell unit */
-        VteStream *m_stream;        /* NULL if it's serialized */
-        gint m_pixelwidth;          /* image width in pixels */
-        gint m_pixelheight;         /* image hieght in pixels */
-        gulong m_position;          /* indicates the position at the stream if it's serialized */
-        size_t m_nread;             /* private use: for read callback */
-        size_t m_nwrite;            /* private use: for write callback */
-        cairo_surface_t *m_surface; /* internal cairo image */
+        gint m_pixelwidth;          /* Image width in pixels */
+        gint m_pixelheight;         /* Image height in pixels */
+        gint m_left;                /* Left position in cell units */
+        gint m_top;                 /* Top position in cell units */
+        gint m_width;               /* Width in cell units */
+        gint m_height;              /* Height in cell units */
+        VteStream *m_stream;        /* For serialization */
+        gulong m_position;          /* Indicates the position at the stream if it's serialized */
+        size_t m_nread;             /* Private use: for read callback */
+        size_t m_nwrite;            /* Private use: for write callback */
+        cairo_surface_t *m_surface; /* Internal cairo image */
 public:
-        explicit Image(cairo_surface_t *surface, gint pixelwidth, gint pixelheight, gint col, gint row, gint w, gint h, _VteStream *stream);
+        explicit Image(cairo_surface_t *surface, gint pixelwidth, gint pixelheight,
+                       gint col, gint row, gint w, gint h, _VteStream *stream);
         ~Image();
         glong get_left() const;
         glong get_top() const;
