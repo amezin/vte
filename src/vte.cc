@@ -8224,29 +8224,38 @@ Terminal::draw_cells(vte::view::DrawingContext::TextRequest* items,
         else
                 rgb_from_index<4, 5, 4>(deco, dc);
 
-        if (clear && (draw_default_bg || back != VTE_DEFAULT_BG)) {
-                /* Paint the background. */
-                i = 0;
-                while (i < n) {
-                        xl = items[i].x;
-                        xr = items[i].x + items[i].columns * column_width;
-                        y = items[i].y;
-                        /* Items are not necessarily contiguous in LTR order.
-                         * Combine as long as they form a single visual run. */
-                        for (i++; i < n && items[i].y == y; i++) {
-                                if (G_LIKELY (items[i].x == xr)) {
-                                        xr += items[i].columns * column_width;  /* extend to the right */
-                                } else if (items[i].x + items[i].columns * column_width == xl) {
-                                        xl = items[i].x;                        /* extend to the left */
-                                } else {
-                                        break;                                  /* break the run */
-                                }
+        /* Paint the background. */
+        i = 0;
+        while (i < n) {
+                xl = items[i].x;
+                xr = items[i].x + items[i].columns * column_width;
+                y = items[i].y;
+                /* Items are not necessarily contiguous in LTR order.
+                 * Combine as long as they form a single visual run. */
+                for (i++; i < n && items[i].y == y; i++) {
+                        if (G_LIKELY (items[i].x == xr)) {
+                                xr += items[i].columns * column_width;  /* extend to the right */
+                        } else if (items[i].x + items[i].columns * column_width == xl) {
+                                xl = items[i].x;                        /* extend to the left */
+                        } else {
+                                break;                                  /* break the run */
                         }
-			m_draw.fill_rectangle(
-                                                 xl,
-                                                 y,
-                                                 xr - xl, row_height,
-                                                 &bg, VTE_DRAW_OPAQUE);
+                }
+
+                if (back == VTE_DEFAULT_BG) {
+                        /* Clear cells in order to properly overdraw images */
+                        m_draw.clear(xl,
+                                     y,
+                                     xr - xl, row_height,
+                                     get_color(VTE_DEFAULT_BG), m_background_alpha);
+                }
+
+                if (clear && (draw_default_bg || back != VTE_DEFAULT_BG)) {
+                        m_draw.fill_rectangle(
+                                              xl,
+                                              y,
+                                              xr - xl, row_height,
+                                              &bg, VTE_DRAW_OPAQUE);
                 }
         }
 
@@ -9248,7 +9257,8 @@ Terminal::widget_draw(cairo_t *cr)
                                  get_color(VTE_DEFAULT_BG), m_background_alpha);
         }
 
-	/* Draw SIXEL images */
+	/* Draw images */
+
 	if (m_sixel_enabled) {
 		vte::grid::row_t top_row = first_displayed_row();
 		vte::grid::row_t bottom_row = last_displayed_row();
@@ -9263,6 +9273,12 @@ Terminal::widget_draw(cairo_t *cr)
 
 			int x = m_padding.left + image->get_left () * m_cell_width;
 			int y = m_padding.top + (image->get_top () - m_screen->scroll_delta) * m_cell_height;
+
+                        /* Clear cell extent; image may be slightly smaller */
+                        m_draw.clear(x, y, image->get_width() * m_cell_width,
+                                     image->get_height() * m_cell_height,
+                                     get_color(VTE_DEFAULT_BG), m_background_alpha);
+
 			image->paint (cr, x, y, m_cell_width, m_cell_height);
 		}
 	}
