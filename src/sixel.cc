@@ -1,5 +1,6 @@
 /*
- * Copyright (C) Hayaki Saito
+ * Copyright © 2016-2020 Hayaki Saito
+ * Copyright © 2020 Hans Petter Jansson
  * originally written by kmiya@cluti (https://github.com/saitoha/sixel/blob/master/fromsixel.c)
  *
  * This library is free software; you can redistribute it and/or
