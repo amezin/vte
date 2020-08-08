@@ -64,6 +64,8 @@ public:
         inline constexpr auto get_left() const noexcept { return m_left_cells; }
         inline constexpr auto get_top() const noexcept { return m_top_cells; }
         inline constexpr auto get_bottom() const noexcept { return m_top_cells + m_height_cells - 1; }
+        inline constexpr auto get_width() const noexcept { return m_width_cells; }
+        inline constexpr auto get_height() const noexcept { return m_height_cells; }
         inline auto resource_size() const noexcept {
                 if (cairo_image_surface_get_stride(m_surface.get()) != 0)
                         return cairo_image_surface_get_stride(m_surface.get()) * m_height_pixels;

@@ -131,6 +131,7 @@ private:
 
         void hyperlink_gc();
         void image_gc();
+        void image_gc_region();
         hyperlink_idx_t get_hyperlink_idx_no_update_current(char const* hyperlink);
 
         typedef struct _CellAttrChange {

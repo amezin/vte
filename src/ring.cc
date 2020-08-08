@@ -215,6 +215,41 @@ Ring::hyperlink_maybe_gc(row_t increment)
 }
 
 void
+Ring::image_gc_region()
+{
+	using namespace vte::image;
+        cairo_region_t *region = cairo_region_create();
+
+	for (auto it = m_image_priority_map->rbegin(); it != m_image_priority_map->rend(); ) {
+                vte::image::Image *image = it->second;
+                cairo_rectangle_int_t r;
+
+                r.x = image->get_left();
+                r.y = image->get_top();
+                r.width = image->get_width();
+                r.height = image->get_height();
+
+                if (cairo_region_contains_rectangle(region, &r) == CAIRO_REGION_OVERLAP_IN) {
+                        /* Image has been completely overdrawn; delete it */
+
+                        m_image_fast_memory_used -= image->resource_size();
+
+                        /* Apparently this is the cleanest way to erase() with a reverse iterator... */
+                        it = decltype(it){m_image_priority_map->erase(std::next(it).base())};
+
+                        m_image_map->erase(image->get_bottom());
+                        delete image;
+                        continue;
+                }
+
+                cairo_region_union_rectangle(region, &r);
+                it++;
+        }
+
+        cairo_region_destroy(region);
+}
+
+void
 Ring::image_gc()
 {
         while (m_image_fast_memory_used > IMAGE_FAST_MEMORY_USED_MAX
@@ -1563,23 +1598,6 @@ Ring::append_image (cairo_surface_t *surface, gint pixelwidth, gint pixelheight,
 	char_width = pixelwidth / width;
 	char_height = pixelwidth / height;
 
-	for (auto it = m_image_map->lower_bound (top); it != m_image_map->end (); ) {
-		Image *current = it->second;
-
-		/* Delete images that are completely covered by this image */
-		if (image->contains (*current)) {
-                        m_image_fast_memory_used -= current->resource_size ();
-
-                        /* We must advance the iterator before erasure */
-			m_image_map->erase (it++);
-                        m_image_priority_map->erase(current->get_priority());
-			delete current;
-                        continue;
-		}
-
-                it++;
-	}
-
 	/*
 	 * Now register new image to the m_image_map container.
 	 * the key is bottom positon.
@@ -1592,7 +1610,9 @@ Ring::append_image (cairo_surface_t *surface, gint pixelwidth, gint pixelheight,
         m_image_priority_map->insert (std::make_pair (image->get_priority (), image));
 	m_image_fast_memory_used += image->resource_size ();
 
+        image_gc_region();
         image_gc();
+
 end:
 	/* noop */
 	;
