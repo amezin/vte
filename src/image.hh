@@ -30,6 +30,9 @@ private:
         // Device-friendly Cairo surface
         vte::cairo::Surface m_surface{};
 
+        // Draw/prune priority, must be unique
+        int m_priority;
+
         // Image dimensions in pixels
         int m_width_pixels;
         int m_height_pixels;
@@ -41,9 +44,13 @@ private:
         int m_height_cells;
 
 public:
-        Image(vte::cairo::Surface&& surface, int width_pixels, int height_pixels,
-              int col, int row, int width_cells, int height_cells) noexcept
+        Image(vte::cairo::Surface&& surface,
+              int priority,
+              int width_pixels, int height_pixels,
+              int col, int row,
+              int width_cells, int height_cells) noexcept
                 : m_surface{std::move(surface)},
+                  m_priority{priority},
                   m_width_pixels{width_pixels},
                   m_height_pixels{height_pixels},
                   m_left_cells{col},
@@ -53,6 +60,7 @@ public:
         {
         }
 
+        inline constexpr auto get_priority() const noexcept { return m_priority; }
         inline constexpr auto get_left() const noexcept { return m_left_cells; }
         inline constexpr auto get_top() const noexcept { return m_top_cells; }
         inline constexpr auto get_bottom() const noexcept { return m_top_cells + m_height_cells - 1; }

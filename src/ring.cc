@@ -1528,7 +1528,11 @@ Ring::append_image (cairo_surface_t *surface, gint pixelwidth, gint pixelheight,
 	Image *image;
 	gulong char_width, char_height;
 
-	image = new (std::nothrow) Image (vte::cairo::Surface(surface), pixelwidth, pixelheight, left, top, width, height);
+	image = new (std::nothrow) Image (vte::cairo::Surface(surface),
+                                          m_next_image_priority++,
+                                          pixelwidth, pixelheight,
+                                          left, top,
+                                          width, height);
 	g_assert_true (image != NULL);
 
 	char_width = pixelwidth / width;
@@ -1559,7 +1563,7 @@ Ring::append_image (cairo_surface_t *surface, gint pixelwidth, gint pixelheight,
 	 *  +----------+ <- bottom position (key)
 	 */
 	m_image_map->insert (std::make_pair (image->get_bottom (), image));
-        m_image_priority_map->insert (std::make_pair (m_next_image_priority++, image));
+        m_image_priority_map->insert (std::make_pair (image->get_priority (), image));
 	m_image_onscreen_resource_counter += image->resource_size ();
 end:
 	/* noop */
