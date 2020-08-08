@@ -463,6 +463,17 @@ test_refptr = executable(
   install: false,
 )
 
+test_sixels_sources = files(
+  'test-sixels.c'
+)
+
+test_sixels = executable(
+  'test-sixels',
+  sources: test_sixels_sources,
+  dependencies: [glib_dep],
+  install: false,
+)
+
 test_tabstops_sources = files(
   'tabstops-test.cc',
   'tabstops.hh'
