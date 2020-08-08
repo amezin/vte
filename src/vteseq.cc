@@ -4389,29 +4389,29 @@ Terminal::DECSIXEL(vte::parser::Sequence const& seq)
 
 	/* Convert to device-compatible surface for m_widget */
 
-	image_surface = cairo_image_surface_create_for_data (pixels, CAIRO_FORMAT_ARGB32, pixelwidth, pixelheight, pixelwidth * 4);
+	image_surface = cairo_image_surface_create_for_data(pixels, CAIRO_FORMAT_ARGB32, pixelwidth, pixelheight, pixelwidth * 4);
         if (!image_surface) {
                 g_free(pixels);
                 return;
         }
 
-	surface = gdk_window_create_similar_surface (gtk_widget_get_window (m_widget), CAIRO_CONTENT_COLOR_ALPHA, pixelwidth, pixelheight);
+	surface = gdk_window_create_similar_surface(gtk_widget_get_window (m_widget), CAIRO_CONTENT_COLOR_ALPHA, pixelwidth, pixelheight);
         if (!surface) {
                 cairo_surface_destroy(image_surface);
                 g_free(pixels);
                 return;
         }
 
-	cr = cairo_create (surface);
-	cairo_set_source_surface (cr, image_surface, 0, 0);
-	cairo_paint (cr);
-	cairo_destroy (cr);
-	cairo_surface_destroy (image_surface);
+	cr = cairo_create(surface);
+	cairo_set_source_surface(cr, image_surface, 0, 0);
+	cairo_paint(cr);
+	cairo_destroy(cr);
+	cairo_surface_destroy(image_surface);
 	g_free(pixels);
 
 	/* Append image to Ring */
 
-	m_screen->row_data->append_image (surface, pixelwidth, pixelheight, left, top, m_cell_width, m_cell_height);
+	m_screen->row_data->append_image(surface, pixelwidth, pixelheight, left, top, m_cell_width, m_cell_height);
 
 	/* Erase characters under the image */
 
