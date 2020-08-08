@@ -3140,7 +3140,7 @@ Terminal::seq_load_sixel(char const* dcs)
 	free (pixels);
 
 	/* create image object */
-	m_screen->row_data->append_image (surface, pixelwidth, pixelheight, left, top, width, height);
+	m_screen->row_data->append_image (surface, pixelwidth, pixelheight, left, top, m_cell_width, m_cell_height);
 
 	/* Erase characters on the image */
 	for (i = 0; i < height; ++i) {

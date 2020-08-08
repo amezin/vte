@@ -1582,21 +1582,17 @@ Ring::write_contents(GOutputStream* stream,
  * Append an image into the internal image list.
  */
 void
-Ring::append_image (cairo_surface_t *surface, gint pixelwidth, gint pixelheight, glong left, glong top, glong width, glong height)
+Ring::append_image (cairo_surface_t *surface, gint pixelwidth, gint pixelheight, glong left, glong top, glong cell_width, glong cell_height)
 {
 	using namespace vte::image;
 	Image *image;
-	gulong char_width, char_height;
 
 	image = new (std::nothrow) Image (vte::cairo::Surface(surface),
                                           m_next_image_priority++,
                                           pixelwidth, pixelheight,
                                           left, top,
-                                          width, height);
-	g_assert_true (image != NULL);
-
-	char_width = pixelwidth / width;
-	char_height = pixelwidth / height;
+                                          cell_width, cell_height);
+	g_assert (image != NULL);
 
 	/*
 	 * Now register new image to the m_image_map container.

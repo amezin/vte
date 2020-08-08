@@ -37,35 +37,37 @@ private:
         int m_width_pixels;
         int m_height_pixels;
 
-        // Image geometry in cell units
+        // Top left corner offset in cell units
         int m_left_cells;
         int m_top_cells;
-        int m_width_cells;
-        int m_height_cells;
+
+        // Cell dimensions in pixels at time of image creation
+        int m_cell_width;
+        int m_cell_height;
 
 public:
         Image(vte::cairo::Surface&& surface,
               int priority,
               int width_pixels, int height_pixels,
               int col, int row,
-              int width_cells, int height_cells) noexcept
+              int cell_width, int cell_height) noexcept
                 : m_surface{std::move(surface)},
                   m_priority{priority},
                   m_width_pixels{width_pixels},
                   m_height_pixels{height_pixels},
                   m_left_cells{col},
                   m_top_cells{row},
-                  m_width_cells{width_cells},
-                  m_height_cells{height_cells}
+                  m_cell_width{cell_width},
+                  m_cell_height{cell_height}
         {
         }
 
         inline constexpr auto get_priority() const noexcept { return m_priority; }
         inline constexpr auto get_left() const noexcept { return m_left_cells; }
         inline constexpr auto get_top() const noexcept { return m_top_cells; }
-        inline constexpr auto get_bottom() const noexcept { return m_top_cells + m_height_cells - 1; }
-        inline constexpr auto get_width() const noexcept { return m_width_cells; }
-        inline constexpr auto get_height() const noexcept { return m_height_cells; }
+        inline constexpr auto get_width() const noexcept { return (m_width_pixels + m_cell_width - 1) / m_cell_width; }
+        inline constexpr auto get_height() const noexcept { return (m_height_pixels + m_cell_height - 1) / m_cell_height; }
+        inline constexpr auto get_bottom() const noexcept { return m_top_cells + get_height() - 1; }
         inline auto resource_size() const noexcept {
                 if (cairo_image_surface_get_stride(m_surface.get()) != 0)
                         return cairo_image_surface_get_stride(m_surface.get()) * m_height_pixels;

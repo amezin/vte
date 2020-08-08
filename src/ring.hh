@@ -91,7 +91,10 @@ public:
         VteRowData* insert(row_t position, guint8 bidi_flags);
         VteRowData* append(guint8 bidi_flags);
         void remove(row_t position);
-        void append_image (cairo_surface_t *surface, gint pixelwidth, gint pixelheight, glong left, glong top, glong width, glong height);
+        void append_image (cairo_surface_t *surface,
+                           gint pixelwidth, gint pixelheight,
+                           glong left, glong top,
+                           glong cell_width, glong cell_height);
         void drop_scrollback(row_t position);
         void set_visible_rows(row_t rows);
         void rewrap(column_t columns,

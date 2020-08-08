@@ -31,13 +31,29 @@ namespace image {
 void
 Image::paint(cairo_t *cr, int offset_x, int offset_y, int cell_width, int cell_height) const noexcept
 {
-        /* FIXME-hpj: Scale the image if cell width/height is different */
+        double scale_x = 1.0, scale_y = 1.0;
+        double real_offset_x, real_offset_y;
+
+        real_offset_x = offset_x;
+        real_offset_y = offset_y;
+
+        if (cell_width != m_cell_width || cell_height != m_cell_height) {
+                scale_x = cell_width / (double) m_cell_width;
+                scale_y = cell_height / (double) m_cell_height;
+
+                real_offset_x /= scale_x;
+                real_offset_y /= scale_y;
+        }
 
         cairo_save(cr);
         cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
-        cairo_rectangle(cr, offset_x, offset_y, m_width_pixels, m_height_pixels);
+
+        if (!(_vte_double_equal (scale_x, 1.0) && _vte_double_equal (scale_y, 1.0)))
+                cairo_scale (cr, scale_x, scale_y);
+
+        cairo_rectangle(cr, real_offset_x, real_offset_y, m_width_pixels, m_height_pixels);
         cairo_clip(cr);
-        cairo_set_source_surface(cr, m_surface.get(), offset_x, offset_y);
+        cairo_set_source_surface(cr, m_surface.get(), real_offset_x, real_offset_y);
         cairo_paint(cr);
         cairo_restore(cr);
 }
