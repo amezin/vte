@@ -140,7 +140,7 @@ image_object::freeze ()
 	m_nwrite = 0;
 
 	cairo_surface_get_device_scale (m_surface, &x_scale, &y_scale);
-	if (x_scale != 1.0 || y_scale != 1.0) {
+	if (!_vte_double_equal(x_scale, 1.0) || !_vte_double_equal(y_scale, 1.0)) {
 		/* If device scale exceeds 1.0, large size of PNG image created with cairo_surface_write_to_png_stream()
                  * So we need to convert m_surface into an image surface with resizing it.
                  */
