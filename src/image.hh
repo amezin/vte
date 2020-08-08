@@ -27,25 +27,25 @@ namespace image {
 
 struct Image {
 private:
-        gint m_pixelwidth;          /* Image width in pixels */
-        gint m_pixelheight;         /* Image height in pixels */
-        gint m_left;                /* Left position in cell units */
-        gint m_top;                 /* Top position in cell units */
-        gint m_width;               /* Width in cell units */
-        gint m_height;              /* Height in cell units */
+        int m_pixelwidth;           /* Image width in pixels */
+        int m_pixelheight;          /* Image height in pixels */
+        int m_left;                 /* Left position in cell units */
+        int m_top;                  /* Top position in cell units */
+        int m_width;                /* Width in cell units */
+        int m_height;               /* Height in cell units */
         VteStream *m_stream;        /* For serialization */
-        gulong m_position;          /* Indicates the position at the stream if it's serialized */
+        unsigned long m_position;   /* Indicates the position at the stream if it's serialized */
         size_t m_nread;             /* Private use: for read callback */
         size_t m_nwrite;            /* Private use: for write callback */
         cairo_surface_t *m_surface; /* Internal cairo image */
 public:
-        explicit Image(cairo_surface_t *surface, gint pixelwidth, gint pixelheight,
-                       gint col, gint row, gint w, gint h, _VteStream *stream);
+        explicit Image(cairo_surface_t *surface, int pixelwidth, int pixelheight,
+                       int col, int row, int w, int h, _VteStream *stream);
         ~Image();
-        glong get_left() const;
-        glong get_top() const;
-        glong get_bottom() const;
-        gulong get_stream_position() const;
+        long get_left() const;
+        long get_top() const;
+        long get_bottom() const;
+        unsigned long get_stream_position() const;
         bool is_frozen() const;
         bool includes(const Image *rhs) const;
         size_t resource_size() const;
@@ -54,7 +54,9 @@ public:
         bool combine(Image *rhs, gulong char_width, gulong char_height);
         bool unite(Image *rhs, gulong char_width, gulong char_height);
         bool paint(cairo_t *cr, gint offsetx, gint offsety);
-public:
+
+        /* Callbacks */
+
         static cairo_status_t read_callback(void *closure, char *data, unsigned int length);
         static cairo_status_t write_callback(void *closure, const char *data, unsigned int length);
 };

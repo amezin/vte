@@ -27,9 +27,9 @@ namespace vte {
 namespace image {
 
 Image::Image(cairo_surface_t *surface,
-             gint pixelwidth, gint pixelheight,
-             gint col, gint row,
-             gint w, gint h,
+             int pixelwidth, int pixelheight,
+             int col, int row,
+             int w, int h,
              _VteStream *stream)
 {
         m_pixelwidth = pixelwidth;
@@ -51,25 +51,25 @@ Image::~Image()
         g_object_unref(m_stream);
 }
 
-glong
+long
 Image::get_left() const
 {
-        return (glong)m_left;
+        return (long)m_left;
 }
 
-glong
+long
 Image::get_top() const
 {
-        return (glong)m_top;
+        return (long)m_top;
 }
 
-glong
+long
 Image::get_bottom() const
 {
-        return (glong)(m_top + m_height - 1);
+        return (long)(m_top + m_height - 1);
 }
 
-gulong
+unsigned long
 Image::get_stream_position() const
 {
         return m_position;
@@ -162,14 +162,14 @@ Image::freeze()
 
 /* Merge another image into this image */
 bool
-Image::combine(Image *other, gulong char_width, gulong char_height)
+Image::combine(Image *other, unsigned long char_width, unsigned long char_height)
 {
         cairo_t *cr;
 
         assert(other != nullptr);
 
-        gulong offsetx = (other->m_left - m_left) * char_width;
-        gulong offsety = (other->m_top - m_top) * char_height;
+        unsigned long offsetx = (other->m_left - m_left) * char_width;
+        unsigned long offsety = (other->m_top - m_top) * char_height;
 
         if (is_frozen())
                 if (!thaw())
@@ -190,20 +190,20 @@ Image::combine(Image *other, gulong char_width, gulong char_height)
 }
 
 bool
-Image::unite(Image *other, gulong char_width, gulong char_height)
+Image::unite(Image *other, unsigned long char_width, unsigned long char_height)
 {
         if (is_frozen())
                 if (!thaw())
                         return false;
 
-        gint new_left = std::min(m_left, other->m_left);
-        gint new_top = std::min(m_top, other->m_top);
-        gint new_width = std::max(m_left + m_width, other->m_left + other->m_width) - new_left;
-        gint new_height = std::max(m_top + m_height, other->m_top + other->m_width) - new_top;
-        gint pixelwidth = new_width * char_width;
-        gint pixelheight = new_height * char_height;
-        gint offsetx = (m_left - new_left) * char_width;
-        gint offsety = (m_top - new_top) * char_height;
+        int new_left = std::min(m_left, other->m_left);
+        int new_top = std::min(m_top, other->m_top);
+        int new_width = std::max(m_left + m_width, other->m_left + other->m_width) - new_left;
+        int new_height = std::max(m_top + m_height, other->m_top + other->m_width) - new_top;
+        int pixelwidth = new_width * char_width;
+        int pixelheight = new_height * char_height;
+        int offsetx = (m_left - new_left) * char_width;
+        int offsety = (m_top - new_top) * char_height;
 
         cairo_surface_t * new_surface = cairo_surface_create_similar(other->m_surface, CAIRO_CONTENT_COLOR_ALPHA, m_pixelwidth, m_pixelheight);
         cairo_t *cr = cairo_create(new_surface);
@@ -228,7 +228,7 @@ Image::unite(Image *other, gulong char_width, gulong char_height)
 
 /* Paint the image with provided cairo context */
 bool
-Image::paint(cairo_t *cr, gint offsetx, gint offsety)
+Image::paint(cairo_t *cr, int offsetx, int offsety)
 {
         if (is_frozen())
                 if (!thaw())
