@@ -108,12 +108,6 @@ public:
          *
          * >>> */
 
-	bool m_has_streams;
-
-	row_t m_max;
-	row_t m_start{0};
-        row_t m_end{0};
-
         int m_next_image_priority;
 
         std::map<gint, vte::image::Image *> *m_image_by_top_map;
@@ -214,6 +208,10 @@ private:
                       char const** hyperlink);
         void reset_streams(row_t position);
 
+	row_t m_max;
+	row_t m_start{0};
+        row_t m_end{0};
+
 	/* Writable */
 	row_t m_writable{0};
         row_t m_mask{31};
@@ -233,6 +231,7 @@ private:
          *    if nonempty, it actually contains the ID and URI separated with a semicolon. Not NUL terminated.
          *  - 2 bytes repeating attr.hyperlink_length so that we can walk backwards.
          */
+	bool m_has_streams;
 	VteStream *m_attr_stream, *m_text_stream, *m_row_stream;
 	size_t m_last_attr_text_start_offset{0};
 	VteCellAttr m_last_attr;
