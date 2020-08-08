@@ -261,7 +261,12 @@ sixel_parser_init(sixel_state_t *st,
 {
 	int status = (-1);
 
-	st->state = PS_DCS;
+        /* FIXME-hpj: This used to be PS_DCS, but the VTE sequence parses the
+         * initial parameters for us, up to and including the leading 'q'. We
+         * therefore skip directly to the PS_DECSIXEL state.
+         *
+         * We may need to pass the initial parameters to this parser. */
+	st->state = PS_DECSIXEL;
 	st->pos_x = 0;
 	st->pos_y = 0;
 	st->max_x = 0;
