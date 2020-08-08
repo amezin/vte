@@ -328,11 +328,26 @@ sixel_parser_finalize(sixel_state_t *st, unsigned char *pixels)
 	dst = pixels;
 	for (y = 0; y < st->image.height; ++y) {
 		for (x = 0; x < st->image.width; ++x) {
-			color = st->image.palette[*src++];
-			*dst++ = color >> 16 & 0xff;   /* b */
-			*dst++ = color >> 8 & 0xff;    /* g */
-			*dst++ = color >> 0 & 0xff;    /* r */
-			*dst++ = 0xff;                 /* a */
+                        sixel_color_no_t pen = *src++;
+
+                        /* FIXME-hpj: We may want to make this branch-free, among other
+                         * performance improvements. */
+
+                        if (pen == 0) {
+                                /* Cairo wants premultiplied alpha: Transparent
+                                 * areas must be all zeroes. */
+
+                                *dst++ = 0;
+                                *dst++ = 0;
+                                *dst++ = 0;
+                                *dst++ = 0;
+                        } else {
+                                color = st->image.palette[pen];
+                                *dst++ = color >> 16 & 0xff;   /* b */
+                                *dst++ = color >> 8 & 0xff;    /* g */
+                                *dst++ = color >> 0 & 0xff;    /* r */
+                                *dst++ = 0xff;                 /* a */
+                        }
 		}
 	}
 
