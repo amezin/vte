@@ -31,36 +31,36 @@ private:
         vte::cairo::Surface m_surface{};
 
         // Image dimensions in pixels
-        int m_pixelwidth;
-        int m_pixelheight;
+        int m_width_pixels;
+        int m_height_pixels;
 
         // Image geometry in cell units
-        int m_left;
-        int m_top;
-        int m_width;
-        int m_height;
+        int m_left_cells;
+        int m_top_cells;
+        int m_width_cells;
+        int m_height_cells;
 
 public:
         Image(vte::cairo::Surface&& surface, int width_pixels, int height_pixels,
               int col, int row, int width_cells, int height_cells) noexcept
                 : m_surface{std::move(surface)},
-                  m_pixelwidth{width_pixels},
-                  m_pixelheight{height_pixels},
-                  m_left{col},
-                  m_top{row},
-                  m_width{width_cells},
-                  m_height{height_cells}
+                  m_width_pixels{width_pixels},
+                  m_height_pixels{height_pixels},
+                  m_left_cells{col},
+                  m_top_cells{row},
+                  m_width_cells{width_cells},
+                  m_height_cells{height_cells}
         {
         }
 
-        inline constexpr auto get_left() const noexcept { return m_left; }
-        inline constexpr auto get_top() const noexcept { return m_top; }
-        inline constexpr auto get_bottom() const noexcept { return m_top + m_height - 1; }
+        inline constexpr auto get_left() const noexcept { return m_left_cells; }
+        inline constexpr auto get_top() const noexcept { return m_top_cells; }
+        inline constexpr auto get_bottom() const noexcept { return m_top_cells + m_height_cells - 1; }
         inline auto resource_size() const noexcept {
-                return cairo_image_surface_get_stride(m_surface.get()) * m_pixelheight;
+                return cairo_image_surface_get_stride(m_surface.get()) * m_height_pixels;
         }
         bool contains(const Image &other) const noexcept;
-        void paint(cairo_t *cr, gint offsetx, gint offsety) const noexcept;
+        void paint(cairo_t *cr, gint offset_x, gint offset_y) const noexcept;
 };
 
 } // namespace image

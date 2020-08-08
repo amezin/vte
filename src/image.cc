@@ -29,22 +29,22 @@ namespace image {
 
 /* Test whether this image contains given image */
 bool
-Image::contains(const Image &other) const
+Image::contains(const Image &other) const noexcept
 {
-        return other.m_left >= m_left &&
-               other.m_top >= m_top &&
-               other.m_left + other.m_width <= m_left + m_width &&
-               other.m_top + other.m_height <= m_top + m_height;
+        return other.m_left_cells >= m_left_cells &&
+               other.m_top_cells >= m_top_cells &&
+               other.m_left_cells + other.m_width_cells <= m_left_cells + m_width_cells &&
+               other.m_top_cells + other.m_height_cells <= m_top_cells + m_height_cells;
 }
 
 /* Paint the image with provided cairo context */
 void
-Image::paint(cairo_t *cr, int offsetx, int offsety)
+Image::paint(cairo_t *cr, int offset_x, int offset_y) const noexcept
 {
         cairo_save(cr);
-        cairo_rectangle(cr, offsetx, offsety, m_pixelwidth, m_pixelheight);
+        cairo_rectangle(cr, offset_x, offset_y, m_width_pixels, m_height_pixels);
         cairo_clip(cr);
-        cairo_set_source_surface(cr, m_surface.get(), offsetx, offsety);
+        cairo_set_source_surface(cr, m_surface.get(), offset_x, offset_y);
         cairo_paint(cr);
         cairo_restore(cr);
 }
