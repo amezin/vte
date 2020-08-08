@@ -34,7 +34,13 @@ typedef struct vte_seq_string_t {
 } vte_seq_string_t;
 
 #define VTE_SEQ_STRING_DEFAULT_CAPACITY (1 << 7) /* must be power of two */
-#define VTE_SEQ_STRING_MAX_CAPACITY     (1 << 12)
+
+/* This needs to be somewhat large for the time being; it accommodates inline
+ * graphics formats (e.g. sixels), and there is no provision for parsing
+ * those incrementally yet. 8M characters is typically enough for an
+ * RLE-incompressible 256-color 1920x1080 image. Since VTE seqs store 32 bits
+ * per character, this corresponds to a 32MiB buffer. */
+#define VTE_SEQ_STRING_MAX_CAPACITY     (1 << 23)
 
 /*
  * vte_seq_string_init:
