@@ -1547,6 +1547,7 @@ Ring::append_image (cairo_surface_t *surface, gint pixelwidth, gint pixelheight,
 
                         /* We must advance the iterator before erasure */
 			m_image_map->erase (it++);
+                        m_image_priority_map->erase(current->get_priority());
 			delete current;
                         continue;
 		}
