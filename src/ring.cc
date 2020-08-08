@@ -1537,8 +1537,8 @@ Ring::append_image (cairo_surface_t *surface, gint pixelwidth, gint pixelheight,
 	for (auto it = m_image_map->lower_bound (top); it != m_image_map->end (); ) {
 		Image *current = it->second;
 
-		/* Combine two images if one's area includes another's area */
-		if (image->includes (current)) {
+		/* Combine two images if one's area contains another's area */
+		if (image->contains (current)) {
 			/*
 			 * Replace current image with new image
 			 *
@@ -1558,7 +1558,7 @@ Ring::append_image (cairo_surface_t *surface, gint pixelwidth, gint pixelheight,
 			m_image_map->erase (it++);
 			delete current;
                         continue;
-		} else if (current->includes (image)) {
+		} else if (current->contains (image)) {
 			/*
 			 * Copy new image to current image's sub-area.
 			 *
@@ -1575,7 +1575,7 @@ Ring::append_image (cairo_surface_t *surface, gint pixelwidth, gint pixelheight,
 			} else {
 				m_image_onscreen_resource_counter -= current->resource_size ();
 			}
-			current->combine (image, char_width, char_height);
+			current->subsume (image, char_width, char_height);
 			m_image_onscreen_resource_counter += current->resource_size ();
 			delete image;
 			goto end;

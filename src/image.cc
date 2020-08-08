@@ -84,9 +84,9 @@ Image::is_frozen() const
         return (m_surface == NULL);
 }
 
-/* Test whether this image includes given image */
+/* Test whether this image contains given image */
 bool
-Image::includes(const Image *other) const
+Image::contains(const Image *other) const
 {
         assert(other != nullptr);
 
@@ -164,7 +164,7 @@ Image::freeze()
 
 /* Merge another image into this image */
 bool
-Image::combine(Image *other, unsigned long char_width, unsigned long char_height)
+Image::subsume(Image *other, unsigned long char_width, unsigned long char_height)
 {
         cairo_t *cr;
 
@@ -225,7 +225,7 @@ Image::unite(Image *other, unsigned long char_width, unsigned long char_height)
         m_pixelheight = pixelheight;
         m_surface = new_surface;
 
-        return combine(other, char_width, char_height);
+        return subsume(other, char_width, char_height);
 }
 
 /* Paint the image with provided cairo context */

@@ -48,11 +48,11 @@ public:
         long get_bottom() const;
         unsigned long get_stream_position() const;
         bool is_frozen() const;
-        bool includes(const Image *rhs) const;
+        bool contains(const Image *rhs) const;
         size_t resource_size() const;
         void freeze();
         bool thaw();
-        bool combine(Image *rhs, gulong char_width, gulong char_height);
+        bool subsume(Image *rhs, gulong char_width, gulong char_height);
         bool unite(Image *rhs, gulong char_width, gulong char_height);
         bool paint(cairo_t *cr, gint offsetx, gint offsety);
 
