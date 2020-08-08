@@ -157,14 +157,12 @@ sixel_image_init(sixel_image_t *image,
         size = (size_t)(width * height) * sizeof(sixel_color_no_t);
         image->width = width;
         image->height = height;
-        image->data = (sixel_color_no_t *)g_malloc(size);
+        image->data = (sixel_color_no_t *) g_try_malloc0(size);
         image->ncolors = 2;
         image->use_private_register = use_private_register;
 
         if (image->data == NULL)
                 goto out;
-
-        memset(image->data, 0, size);
 
         image->palette[0] = bgcolor;
 
@@ -193,7 +191,7 @@ image_buffer_resize(sixel_image_t *image, int width, int height)
                 return 0;
 
         size = (size_t)(width * height) * sizeof(sixel_color_no_t);
-        alt_buffer = (sixel_color_no_t *)g_malloc(size);
+        alt_buffer = (sixel_color_no_t *) g_try_malloc(size);
         if (alt_buffer == NULL) {
                 status = -1;
                 goto out;
