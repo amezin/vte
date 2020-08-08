@@ -54,14 +54,7 @@
 #define TEST_PALETTE_SIZE_MIN 1
 #define TEST_PALETTE_SIZE_MAX 16
 
-typedef struct
-{
-        int width, height;
-        int n_colors;
-        uint32_t palette [N_COLORS_MAX];
-        uint16_t *pixels;
-}
-Image;
+/* --- Helpers --- */
 
 static int
 random_int_in_range (int min, int max)
@@ -158,6 +151,17 @@ argb_to_sixel_rgb (uint32_t argb, int *r, int *g, int *b)
         *g = transform_range ((argb >> 8) & 0xff, 0, 256, 0, 101);
         *b = transform_range (argb & 0xff, 0, 256, 0, 101);
 }
+
+/* --- Image gen and sixel conversion --- */
+
+typedef struct
+{
+        int width, height;
+        int n_colors;
+        uint32_t palette [N_COLORS_MAX];
+        uint16_t *pixels;
+}
+Image;
 
 static void
 image_init (Image *image, int width, int height, int n_colors)
@@ -483,7 +487,7 @@ print_loop (const Options *options)
         }
 }
 
-/* --- Argument parsing --- */
+/* --- Argument parsing and init --- */
 
 static bool
 parse_int (const char *arg, const char *val, int *out)
