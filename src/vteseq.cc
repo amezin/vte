@@ -8874,59 +8874,5 @@ Terminal::XTERM_WM(vte::parser::Sequence const& seq)
         }
 }
 
-#if 0
-/* FIXME-hpj */
-
-/* graphics attributes */
-static void
-vte_sequence_handler_graphics_attributes(VteTerminalPrivate *that, GValueArray *params)
-{
-	if (params == NULL || params->n_values != 3) {
-		return;
-	}
-	GValue* value = g_value_array_get_nth(params, 0);
-	if (!G_VALUE_HOLDS_LONG(value)) {
-		return;
-	}
-	auto param = g_value_get_long(value);
-
-	char buf[128];
-	long arg1, arg2;
-	arg1 = arg2 = -1;
-	if (params->n_values > 1) {
-		value = g_value_array_get_nth(params, 1);
-		if (G_VALUE_HOLDS_LONG(value)) {
-			arg1 = g_value_get_long(value);
-		}
-	}
-	if (params->n_values > 2) {
-		value = g_value_array_get_nth(params, 2);
-		if (G_VALUE_HOLDS_LONG(value)) {
-			arg2 = g_value_get_long(value);
-		}
-	}
-
-	switch (arg1) {
-	case 1:
-		switch (arg2) {
-		case 1:
-			that->feed_child(_VTE_CAP_CSI "?1;0;256S", -1);
-			break;
-		case 2:
-			that->feed_child(_VTE_CAP_CSI "?1;0;256S", -1);
-			break;
-		case 3:
-			that->feed_child(_VTE_CAP_CSI "?1;3;0S", -1);
-			break;
-		default:
-			break;
-		}
-	default:
-                g_snprintf(buf, sizeof(buf), _VTE_CAP_CSI "?%ld;1;0S", arg1);
-		break;
-	}
-}
-#endif
-
 } // namespace terminal
 } // namespace vte
