@@ -45,6 +45,7 @@ _attrcpy (void *dst, void *src)
 }
 
 using namespace vte::base;
+using namespace vte::image;
 
 /*
  * VteRing: A buffer ring
@@ -96,8 +97,8 @@ Ring::Ring(row_t max_rows,
         g_ptr_array_add(m_hyperlinks, empty_str);
 
         m_next_image_priority = 0;
-        m_image_by_top_map = new (std::nothrow) std::map<gint, vte::image::Image *>();
-        m_image_priority_map = new (std::nothrow) std::map<int, vte::image::Image *>();
+        m_image_by_top_map = new (std::nothrow) std::map<gint, Image *>();
+        m_image_priority_map = new (std::nothrow) std::map<int, Image *>();
         m_image_fast_memory_used = 0;
 
 	validate();
@@ -217,11 +218,10 @@ Ring::hyperlink_maybe_gc(row_t increment)
 void
 Ring::image_gc_region()
 {
-	using namespace vte::image;
         cairo_region_t *region = cairo_region_create();
 
 	for (auto it = m_image_priority_map->rbegin(); it != m_image_priority_map->rend(); ) {
-                vte::image::Image *image = it->second;
+                Image *image = it->second;
                 cairo_rectangle_int_t r;
 
                 r.x = image->get_left();
@@ -258,7 +258,7 @@ Ring::image_gc()
                         break;
                 }
 
-                vte::image::Image *image = m_image_priority_map->begin()->second;
+                Image *image = m_image_priority_map->begin()->second;
                 m_image_fast_memory_used -= image->resource_size();
                 m_image_priority_map->erase(m_image_priority_map->begin());
                 unlink_image_from_top_map(image);
@@ -267,10 +267,10 @@ Ring::image_gc()
 }
 
 void
-Ring::unlink_image_from_top_map(vte::image::Image *image)
+Ring::unlink_image_from_top_map(Image *image)
 {
         for (auto it = m_image_by_top_map->find(image->get_top()); it != m_image_by_top_map->end(); it++) {
-                vte::image::Image *cur_image = it->second;
+                Image *cur_image = it->second;
 
                 if (cur_image->get_priority() == image->get_priority()) {
                         m_image_by_top_map->erase(it);
@@ -285,17 +285,17 @@ Ring::rebuild_image_top_map()
         m_image_by_top_map->clear();
 
         for (auto it = m_image_priority_map->begin(); it != m_image_priority_map->end(); it++) {
-                vte::image::Image *image = it->second;
+                Image *image = it->second;
                 m_image_by_top_map->insert(std::make_pair(image->get_top(), image));
         }
 }
 
 bool
-Ring::rewrap_images_in_range(std::map<int,vte::image::Image*>::iterator &it,
+Ring::rewrap_images_in_range(std::map<int,Image*>::iterator &it,
                              size_t text_start_ofs, size_t text_end_ofs, row_t new_row_index)
 {
         for ( ; it != m_image_by_top_map->end(); it++) {
-                vte::image::Image *image = it->second;
+                Image *image = it->second;
                 CellTextOffset ofs;
 
                 if (!frozen_row_column_to_text_offset(image->get_top(), 0, &ofs))
@@ -1648,7 +1648,6 @@ Ring::write_contents(GOutputStream* stream,
 void
 Ring::append_image (cairo_surface_t *surface, gint pixelwidth, gint pixelheight, glong left, glong top, glong cell_width, glong cell_height)
 {
-	using namespace vte::image;
 	Image *image;
 
 	image = new (std::nothrow) Image (vte::cairo::Surface(surface),
