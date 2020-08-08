@@ -4366,12 +4366,13 @@ Terminal::DECSIXEL(vte::parser::Sequence const& seq)
 		sixel_parser_deinit(&m_sixel_state);
 		return;
 	}
-	pixels = (unsigned char *)g_malloc(m_sixel_state.image.width * m_sixel_state.image.height * 4);
+	pixels = (unsigned char *)g_try_malloc(m_sixel_state.image.width * m_sixel_state.image.height * 4);
 	if (!pixels) {
 		sixel_parser_deinit(&m_sixel_state);
 		return;
 	}
 	if (sixel_parser_finalize(&m_sixel_state, pixels) < 0) {
+                g_free(pixels);
 		sixel_parser_deinit(&m_sixel_state);
 		return;
 	}
@@ -4389,21 +4390,24 @@ Terminal::DECSIXEL(vte::parser::Sequence const& seq)
 	/* Convert to device-compatible surface for m_widget */
 
 	image_surface = cairo_image_surface_create_for_data (pixels, CAIRO_FORMAT_ARGB32, pixelwidth, pixelheight, pixelwidth * 4);
-
-        /* FIXME-hpj: Handle out-of-memory gracefully */
-	g_assert (image_surface);
+        if (!image_surface) {
+                g_free(pixels);
+                return;
+        }
 
 	surface = gdk_window_create_similar_surface (gtk_widget_get_window (m_widget), CAIRO_CONTENT_COLOR_ALPHA, pixelwidth, pixelheight);
-
-        /* FIXME-hpj: Handle out-of-memory gracefully */
-	g_assert (surface);
+        if (!surface) {
+                cairo_surface_destroy(image_surface);
+                g_free(pixels);
+                return;
+        }
 
 	cr = cairo_create (surface);
 	cairo_set_source_surface (cr, image_surface, 0, 0);
 	cairo_paint (cr);
 	cairo_destroy (cr);
 	cairo_surface_destroy (image_surface);
-	free (pixels);
+	g_free(pixels);
 
 	/* Append image to Ring */
 
