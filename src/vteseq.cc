@@ -3081,8 +3081,8 @@ Terminal::seq_load_sixel(char const* dcs)
 	unsigned char *pixels = NULL;
 	auto fg = get_color(VTE_DEFAULT_FG);
 	auto bg = get_color(VTE_DEFAULT_BG);
-	int nfg = fg->red >> 8 | fg->green >> 8 << 8 | fg->blue >> 8 << 16;
-	int nbg = bg->red >> 8 | bg->green >> 8 << 8 | bg->blue >> 8 << 16;
+	int nfg = (fg->red >> 8) | ((fg->green >> 8) << 8) | ((fg->blue >> 8) << 16);
+	int nbg = (bg->red >> 8) | ((bg->green >> 8) << 8) | ((bg->blue >> 8) << 16);
 	glong left, top, width, height;
 	glong pixelwidth, pixelheight;
 	glong i;
