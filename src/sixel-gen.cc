@@ -15,15 +15,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#if 0
-#include "config.h"
-#endif
-
 #include <assert.h>
+#include <errno.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
 #include <stdio.h>
+
+#include <termios.h>  /* TIOCGWINSZ */
+#include <sys/ioctl.h>  /* ioctl() */
 
 #include <glib.h>
 
@@ -46,6 +46,13 @@
 #define PRE_SEQ "\x1bP"
 #define POST_SEQ "\x1b\\"
 
+#define TEST_IMAGE_SIZE_MIN 16
+#define TEST_IMAGE_SIZE_MAX 512
+
+/* Big palettes make our toy printer extremely slow; use with caution */
+#define TEST_PALETTE_SIZE_MIN 1
+#define TEST_PALETTE_SIZE_MAX 16
+
 typedef struct
 {
         int width, height;
@@ -60,6 +67,12 @@ round_up_to_multiple (int n, int m)
 {
         n += m - 1;
         return n - (n % m);
+}
+
+static int
+round_down_to_multiple (int n, int m)
+{
+        return round_up_to_multiple (n, m + 1) - m;
 }
 
 static void
@@ -312,30 +325,273 @@ image_print_sixels (const Image *image, GString *gstr)
         g_string_append (gstr, POST_SEQ);
 }
 
-static void
-print_loop (int n_iterations)
-{
-        int i;
+/* --- Main loop and printing --- */
 
-        for (i = 0; i < n_iterations; i++) {
-                Image image;
+typedef struct
+{
+        float delay;
+        int n_errors;
+        int n_frames;
+        int seed;
+        int n_scroll;
+
+        int term_width_cells, term_height_cells;
+        int term_width_pixels, term_height_pixels;
+
+        int term_cell_width, term_cell_height;
+}
+Options;
+
+static int
+random_int_in_range (int min, int max)
+{
+        assert (min <= max);
+
+        if (min == max)
+                return min;
+
+        return min + (random () % (max - min));
+}
+
+static void
+cursor_to_offset (gint x, gint y, GString *gstr)
+{
+        g_string_printf (gstr, "\x1b[%d;%df", y, x);
+}
+
+static void
+cursor_to_random_offset (gint x_max, gint y_max, GString *gstr)
+{
+        cursor_to_offset (random_int_in_range (0, x_max),
+                          random_int_in_range (0, y_max),
+                          gstr);
+}
+
+static void
+scroll_n_lines (const Options *options, int n, GString *gstr)
+{
+        if (n < 1)
+                return;
+
+        cursor_to_offset (0, options->term_height_cells, gstr);
+        for (int i = 0; i < n; i++)
+                g_string_append_printf (gstr, "\n");
+}
+
+static void
+print_text (const gchar *text, GString *gstr)
+{
+        g_string_append (gstr, text);
+}
+
+static void
+print_random_image (const Options *options, GString *gstr)
+{
+        int dim_max = MIN (TEST_IMAGE_SIZE_MAX,
+                           MAX (TEST_IMAGE_SIZE_MIN,
+                                MIN (options->term_width_pixels,
+                                     round_down_to_multiple (options->term_height_pixels - options->term_cell_height,
+                                                             N_PIXELS_IN_SIXEL))));
+        int dim = random_int_in_range (TEST_IMAGE_SIZE_MIN, dim_max + 1);
+        Image image;
+
+        image_init (&image, dim, dim,
+                    random_int_in_range (TEST_PALETTE_SIZE_MIN, TEST_PALETTE_SIZE_MAX));
+        image_generate (&image, 0x00ff0000, 0x000000ff);
+
+        cursor_to_random_offset ((options->term_width_pixels - dim) / options->term_cell_width,
+                                 (options->term_height_pixels - dim) / options->term_cell_height,
+                                 gstr);
+        image_print_sixels (&image, gstr);
+
+        image_deinit (&image);
+}
+
+static void
+print_loop (const Options *options)
+{
+        for (int i = 0; options->n_frames == 0 || i < options->n_frames; i++) {
                 GString *gstr;
 
-                image_init (&image, 64, 64, 1024);
-                image_generate (&image, 0x00ff0000, 0x000000ff);
-
                 gstr = g_string_new ("");
-                image_print_sixels (&image, gstr);
+
+                scroll_n_lines (options, options->n_scroll, gstr);
+
+                if (random () % 2) {
+                        print_random_image (options, gstr);
+                } else {
+                        cursor_to_random_offset (options->term_width_cells - strlen ("Hallo!"),
+                                                 options->term_height_cells,
+                                                 gstr);
+                        print_text ("Hallo!", gstr);
+                }
+
                 fwrite (gstr->str, sizeof (char), gstr->len, stdout);
                 g_string_free (gstr, TRUE);
+                fflush (stdout);
 
-                image_deinit (&image);
+                if (options->delay > 0.000001f)
+                        g_usleep (options->delay * 1000000.0f);
         }
 }
+
+/* --- Argument parsing --- */
+
+static bool
+parse_int (const char *arg, const char *val, int *out)
+{
+        char *endptr;
+        int ret;
+        bool result = FALSE;
+
+        assert (arg != NULL);
+        assert (val != NULL);
+        assert (out != NULL);
+
+        if (*val == '\0') {
+                fprintf (stderr, "Empty value for argument '%s'. Aborting.\n", arg);
+                goto out;
+        }
+
+        ret = strtol (val, &endptr, 10);
+
+        if (*endptr != '\0') {
+                fprintf (stderr, "Unrecognized value for argument '%s': '%s'. Aborting.\n", arg, val);
+                goto out;
+        }
+
+        *out = ret;
+        result = TRUE;
+
+out:
+        return result;
+}
+
+static bool
+parse_float (const char *arg, const char *val, float *out)
+{
+        char *endptr;
+        float ret;
+        bool result = FALSE;
+
+        assert (arg != NULL);
+        assert (val != NULL);
+        assert (out != NULL);
+
+        if (*val == '\0') {
+                fprintf (stderr, "Empty value for argument '%s'. Aborting.\n", arg);
+                goto out;
+        }
+
+        ret = strtof (val, &endptr);
+
+        if (*endptr != '\0') {
+                fprintf (stderr, "Unrecognized value for argument '%s': '%s'. Aborting.\n", arg, val);
+                goto out;
+        }
+
+        *out = ret;
+        result = TRUE;
+
+out:
+        return result;
+}
+
+static bool
+parse_options (Options *options, int argc, char **argv)
+{
+        bool result = FALSE;
+        int i;
+
+        if (argc < 2) {
+                fprintf (stderr, "Usage: %s [options]\n\n"
+                         "Options:\n"
+                         "    -d <float>  Delay between frames, in seconds (default: 0.0).\n"
+                         "    -e <int>    Maximum number of random errors per frame (default: 0).\n"
+                         "    -n <int>    Number of frames to output (default: infinite).\n"
+                         "    -r <int>    Random seed to use (default: current time).\n"
+                         "    -s <int>    Number of lines to scroll for each frame (default: 0).\n\n",
+                         argv [0]);
+                goto out;
+        }
+
+        for (i = 1; i + 1 < argc; ) {
+                const char *arg = argv [i];
+                const char *val = argv [i + 1];
+
+                if (!strcmp (arg, "-d")) {
+                        if (!parse_float (arg, val, &options->delay))
+                                goto out;
+                        i += 2;
+                } else if (!strcmp (arg, "-e")) {
+                        if (!parse_int (arg, val, &options->n_errors))
+                                goto out;
+                        i += 2;
+                } else if (!strcmp (arg, "-n")) {
+                        if (!parse_int (arg, val, &options->n_frames))
+                                goto out;
+                        i += 2;
+                } else if (!strcmp (arg, "-r")) {
+                        if (!parse_int (arg, val, &options->seed))
+                                goto out;
+                        i += 2;
+                } else if (!strcmp (arg, "-s")) {
+                        if (!parse_int (arg, val, &options->n_scroll))
+                                goto out;
+                        i += 2;
+                } else {
+                        fprintf (stderr, "Unrecognized option '%s'. Aborting.\n", arg);
+                        goto out;
+                }
+        }
+
+        if (i != argc) {
+                fprintf (stderr, "Stray option '%s'. Aborting.\n", argv [i]);
+                goto out;
+        }
+
+        result = TRUE;
+
+out:
+        return result;
+}
+
+static bool
+query_terminal (Options *options)
+{
+        struct winsize wsz;
+
+        if (ioctl (fileno (stdout), TIOCGWINSZ, &wsz) != 0) {
+                fprintf (stderr, "ioctl() failed: %s\n", strerror (errno));
+                return FALSE;
+        }
+
+        options->term_width_cells = wsz.ws_col;
+        options->term_height_cells = wsz.ws_row;
+        options->term_width_pixels = wsz.ws_xpixel;
+        options->term_height_pixels = wsz.ws_ypixel;
+
+        options->term_cell_width = wsz.ws_xpixel / wsz.ws_col;
+        options->term_cell_height = wsz.ws_ypixel / wsz.ws_row;
+
+        return TRUE;
+}
+
+/* --- Entry point --- */
 
 int
 main (int argc, char *argv [])
 {
-        print_loop (1);
+        static Options options = { };
+
+        options.seed = (int) time (NULL);
+
+        if (!parse_options (&options, argc, argv))
+                return 1;
+
+        if (!query_terminal (&options))
+                return 2;
+
+        print_loop (&options);
         return 0;
 }
