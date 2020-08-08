@@ -4436,7 +4436,7 @@ Terminal::DECSIXEL(vte::parser::Sequence const& seq)
         if (!dcs)
                 return;
 
-        seq_load_sixel(dcs + 1);
+        seq_load_sixel(dcs);
 }
 
 void
