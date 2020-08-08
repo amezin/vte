@@ -1680,11 +1680,6 @@ public:
 #include "parser-cmd.hh"
 #undef _VTE_CMD
 #undef _VTE_NOP
-
-private:
-        void freeze_hidden_images_before_view_area(double start_pos, double end_pos);
-        void freeze_hidden_images_after_view_area(double start_pos, double end_pos);
-        void maybe_remove_images();
 };
 
 } // namespace terminal

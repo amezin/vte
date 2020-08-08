@@ -3887,9 +3887,6 @@ Terminal::process_incoming_pcterm()
         /* After processing some data, do a hyperlink GC. The multiplier is totally arbitrary, feel free to fine tune. */
         _vte_ring_hyperlink_maybe_gc(m_screen->row_data, bytes_processed * 8);
 
-	if (m_sixel_enabled)
-		maybe_remove_images ();
-
 	_vte_debug_print (VTE_DEBUG_WORK, ")");
 	_vte_debug_print (VTE_DEBUG_IO,
                           "%" G_GSIZE_FORMAT " bytes in %" G_GSIZE_FORMAT " chunks left to process.\n",
@@ -4230,64 +4227,6 @@ Terminal::feed_child_binary(std::string_view const& data)
         /* If we need to start waiting for the child pty to
          * become available for writing, set that up here. */
         connect_pty_write();
-}
-
-void
-Terminal::maybe_remove_images ()
-{
-	VteRing *ring = m_screen->row_data;
-	auto image_map = ring->m_image_map;
-	vte::image::Image *image;
-
-	auto it = image_map->begin();
-
-	/* step 1. collect images out of scroll-back area */
-	while (it != image_map->end()) {
-		/* image_map is sorted from oldest to new */
-		image = it->second;
-
-		/* break if the image is still in scrollback area */
-		if (image->get_bottom () >= (glong) ring->m_start)
-			break;
-
-		/* otherwise, delete it */
-                ring->m_image_onscreen_resource_counter -= image->resource_size ();
-		image_map->erase (image->get_bottom ());
-		delete image;
-		_vte_debug_print (VTE_DEBUG_IMAGE,
-		                  "deleted, offscreen: %zu\n",
-		                  ring->m_image_offscreen_resource_counter);
-	}
-
-	/* step 2. If the resource amount of frozen images (serialized into VteBoa)
-	 * exceeds the upper limit, remove images from oldest.
-	 */
-	if (ring->m_image_offscreen_resource_counter > m_frozen_image_limit) {
-		_vte_debug_print (VTE_DEBUG_IMAGE,
-		                  "checked, offscreen: %zu, max: %zu\n",
-		                  ring->m_image_offscreen_resource_counter,
-		                  m_frozen_image_limit);
-		while (it != image_map->end()) {
-			image = it->second;
-			++it;
-
-			/* remove */
-			image_map->erase (image->get_bottom ());
-                        ring->m_image_onscreen_resource_counter -= image->resource_size ();
-			_vte_debug_print (VTE_DEBUG_IMAGE,
-			                  "deleted, offscreen: %zu\n",
-			                  ring->m_image_offscreen_resource_counter);
-			delete image;
-
-			/* break if the resource amount becomes less than limit */
-			if (ring->m_image_offscreen_resource_counter <= m_frozen_image_limit)
-				break;
-		}
-	}
-
-	/* step 3. shrink image stream with calling _vte_stream_advance_tail() */
-	if (ring->m_has_streams)
-		ring->shrink_image_stream ();
 }
 
 void
