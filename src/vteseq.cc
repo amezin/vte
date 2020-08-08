@@ -960,12 +960,15 @@ Terminal::move_cursor_down(vte::grid::row_t rows)
 }
 
 void
-Terminal::erase_characters(long count)
+Terminal::erase_characters(long count, bool use_basic)
 {
 	VteCell *cell;
+        VteCell blank_cell;
 	long col, i;
 
         ensure_cursor_is_onscreen();
+
+        blank_cell = use_basic ? basic_cell : m_color_defaults;
 
 	/* Clear out the given number of characters. */
 	auto rowdata = ensure_row();
@@ -983,10 +986,10 @@ Terminal::erase_characters(long count)
 					/* Replace this cell with the current
 					 * defaults. */
 					cell = _vte_row_data_get_writable (rowdata, col);
-                                        *cell = m_color_defaults;
+                                        *cell = blank_cell;
 				} else {
 					/* Add new cells until we have one here. */
-                                        _vte_row_data_fill (rowdata, &m_color_defaults, col + 1);
+                                        _vte_row_data_fill (rowdata, &blank_cell, col + 1);
 				}
 			}
 		}
@@ -3141,7 +3144,7 @@ Terminal::seq_load_sixel(char const* dcs)
 
 	/* Erase characters on the image */
 	for (i = 0; i < height; ++i) {
-		erase_characters(width);
+		erase_characters(width, true);
 		if (i == height - 1) {
 			if (m_sixel_scrolls_right)
 				move_cursor_forward(width);
@@ -5490,7 +5493,7 @@ Terminal::ECH(vte::parser::Sequence const& seq)
 
         // FIXMEchpe limit to column_count - cursor.x ?
         auto const count = seq.collect1(0, 1, 1, int(65535));
-        erase_characters(count);
+        erase_characters(count, false);
 }
 
 void

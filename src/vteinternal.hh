@@ -1573,7 +1573,7 @@ public:
         inline vte::grid::column_t get_cursor_column_unclamped() const;
         inline void move_cursor_up(vte::grid::row_t rows);
         inline void move_cursor_down(vte::grid::row_t rows);
-        inline void erase_characters(long count);
+        inline void erase_characters(long count, bool use_basic);
         inline void insert_blank_character();
 
         template<unsigned int redbits, unsigned int greenbits, unsigned int bluebits>
