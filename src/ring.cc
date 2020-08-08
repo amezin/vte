@@ -75,7 +75,6 @@ Ring::Ring(row_t max_rows,
 		m_attr_stream = _vte_file_stream_new ();
 		m_text_stream = _vte_file_stream_new ();
 		m_row_stream = _vte_file_stream_new ();
-		m_image_stream = _vte_file_stream_new ();
 	} else {
 		m_attr_stream = m_text_stream = m_row_stream = nullptr;
 	}
@@ -114,7 +113,6 @@ Ring::~Ring()
 		g_object_unref (m_attr_stream);
 		g_object_unref (m_text_stream);
 		g_object_unref (m_row_stream);
-		g_object_unref (m_image_stream);
 	}
 
 	g_string_free (m_utf8_buffer, TRUE);
@@ -1527,7 +1525,7 @@ Ring::append_image (cairo_surface_t *surface, gint pixelwidth, gint pixelheight,
 	Image *image;
 	gulong char_width, char_height;
 
-	image = new (std::nothrow) Image (surface, pixelwidth, pixelheight, left, top, width, height, m_image_stream);
+	image = new (std::nothrow) Image (vte::cairo::Surface(surface), pixelwidth, pixelheight, left, top, width, height);
 	g_assert_true (image != NULL);
 
 	char_width = pixelwidth / width;
@@ -1538,7 +1536,7 @@ Ring::append_image (cairo_surface_t *surface, gint pixelwidth, gint pixelheight,
 		Image *current = it->second;
 
 		/* Combine two images if one's area contains another's area */
-		if (image->contains (current)) {
+		if (image->contains (*current)) {
 			/*
 			 * Replace current image with new image
 			 *
@@ -1549,71 +1547,12 @@ Ring::append_image (cairo_surface_t *surface, gint pixelwidth, gint pixelheight,
 			 *  | :.........:  |
 			 *  +--------------+
 			 */
-			if (current->is_frozen())
-				m_image_offscreen_resource_counter -= current->resource_size ();
-			else
-				m_image_onscreen_resource_counter -= current->resource_size ();
+                        m_image_onscreen_resource_counter -= current->resource_size ();
 
                         /* We must advance the iterator before erasure */
 			m_image_map->erase (it++);
 			delete current;
                         continue;
-		} else if (current->contains (image)) {
-			/*
-			 * Copy new image to current image's sub-area.
-			 *
-			 *  +--------------+
-			 *  | +-----+      |
-			 *  | | new |      |
-			 *  | +-----+      |
-			 *  |    current   |
-			 *  +--------------+
-			 */
-			if (current->is_frozen()) {
-				m_image_offscreen_resource_counter -= current->resource_size ();
-				current->thaw ();
-			} else {
-				m_image_onscreen_resource_counter -= current->resource_size ();
-			}
-			current->subsume (image, char_width, char_height);
-			m_image_onscreen_resource_counter += current->resource_size ();
-			delete image;
-			goto end;
-		}
-
-		if ((current->get_bottom () - image->get_bottom ()) * (current->get_top () - image->get_top ()) <= 0) {
-                        /*
-			 * Unite two images if one's [top, bottom] includes another's [top, bottom].
-			 * This operation ensures bottom-position-based order is same to top-position-based order.
-			 *
-			 *              +------+
-			 *  +---------+ |      |
-			 *  | current | | new  |
-			 *  |         | |      |
-			 *  +---------+ |      |
-			 *              +------+
-			 *  or
-			 *
-			 *  +---------+
-			 *  | current | +------+
-			 *  |         | | new  |
-			 *  |         | +------+
-			 *  +---------+
-			 *          |
-			 *          v
-			 *  +------------------+
-			 *  | new (united)     |
-			 *  |                  |
-			 *  +------------------+
-			 */
-			image->unite (image, char_width, char_height);
-			m_image_map->erase (current->get_bottom ());
-			if (current->is_frozen())
-				m_image_offscreen_resource_counter -= current->resource_size ();
-			else
-				m_image_onscreen_resource_counter -= current->resource_size ();
-			delete current;
-			goto end;
 		}
 
                 it++;
@@ -1644,8 +1583,4 @@ Ring::shrink_image_stream ()
 		return;
 
 	first_image = m_image_map->begin()->second;
-
-	if (first_image->is_frozen ())
-		if (first_image->get_stream_position () > _vte_stream_tail (m_image_stream))
-			_vte_stream_advance_tail (m_image_stream, first_image->get_stream_position ());
 }

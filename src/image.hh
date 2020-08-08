@@ -19,7 +19,7 @@
 #pragma once
 
 #include <pango/pangocairo.h>
-#include "vtestream.h"
+#include "cairo-glue.hh"
 
 namespace vte {
 
@@ -27,38 +27,40 @@ namespace image {
 
 struct Image {
 private:
-        int m_pixelwidth;           /* Image width in pixels */
-        int m_pixelheight;          /* Image height in pixels */
-        int m_left;                 /* Left position in cell units */
-        int m_top;                  /* Top position in cell units */
-        int m_width;                /* Width in cell units */
-        int m_height;               /* Height in cell units */
-        VteStream *m_stream;        /* For serialization */
-        unsigned long m_position;   /* Indicates the position at the stream if it's serialized */
-        size_t m_nread;             /* Private use: for read callback */
-        size_t m_nwrite;            /* Private use: for write callback */
-        cairo_surface_t *m_surface; /* Internal cairo image */
+        // Device-friendly Cairo surface
+        vte::cairo::Surface m_surface{};
+
+        // Image dimensions in pixels
+        int m_pixelwidth;
+        int m_pixelheight;
+
+        // Image geometry in cell units
+        int m_left;
+        int m_top;
+        int m_width;
+        int m_height;
+
 public:
-        explicit Image(cairo_surface_t *surface, int pixelwidth, int pixelheight,
-                       int col, int row, int w, int h, _VteStream *stream);
-        ~Image();
-        long get_left() const;
-        long get_top() const;
-        long get_bottom() const;
-        unsigned long get_stream_position() const;
-        bool is_frozen() const;
-        bool contains(const Image *rhs) const;
-        size_t resource_size() const;
-        void freeze();
-        bool thaw();
-        bool subsume(Image *rhs, gulong cell_width, gulong cell_height);
-        bool unite(Image *rhs, gulong cell_width, gulong cell_height);
+        Image(vte::cairo::Surface&& surface, int width_pixels, int height_pixels,
+              int col, int row, int width_cells, int height_cells) noexcept
+                : m_surface{std::move(surface)},
+                  m_pixelwidth{width_pixels},
+                  m_pixelheight{height_pixels},
+                  m_left{col},
+                  m_top{row},
+                  m_width{width_cells},
+                  m_height{height_cells}
+        {
+        }
+
+        constexpr auto const get_left() const noexcept { return m_left; }
+        constexpr auto const get_top() const noexcept { return m_top; }
+        constexpr auto const get_bottom() const noexcept { return m_top + m_height - 1; }
+        auto const resource_size() const noexcept {
+                return cairo_image_surface_get_stride(m_surface.get()) * m_pixelheight;
+        }
+        bool contains(const Image &other) const;
         bool paint(cairo_t *cr, gint offsetx, gint offsety);
-
-        /* Callbacks */
-
-        static cairo_status_t read_callback(void *closure, char *data, unsigned int length);
-        static cairo_status_t write_callback(void *closure, const char *data, unsigned int length);
 };
 
 } // namespace image

@@ -4251,10 +4251,7 @@ Terminal::maybe_remove_images ()
 			break;
 
 		/* otherwise, delete it */
-		if (image->is_frozen ())
-			ring->m_image_offscreen_resource_counter -= image->resource_size ();
-		else
-			ring->m_image_onscreen_resource_counter -= image->resource_size ();
+                ring->m_image_onscreen_resource_counter -= image->resource_size ();
 		image_map->erase (image->get_bottom ());
 		delete image;
 		_vte_debug_print (VTE_DEBUG_IMAGE,
@@ -4276,10 +4273,7 @@ Terminal::maybe_remove_images ()
 
 			/* remove */
 			image_map->erase (image->get_bottom ());
-			if (image->is_frozen ())
-				ring->m_image_offscreen_resource_counter -= image->resource_size ();
-			else
-				ring->m_image_onscreen_resource_counter -= image->resource_size ();
+                        ring->m_image_onscreen_resource_counter -= image->resource_size ();
 			_vte_debug_print (VTE_DEBUG_IMAGE,
 			                  "deleted, offscreen: %zu\n",
 			                  ring->m_image_offscreen_resource_counter);
@@ -4294,56 +4288,6 @@ Terminal::maybe_remove_images ()
 	/* step 3. shrink image stream with calling _vte_stream_advance_tail() */
 	if (ring->m_has_streams)
 		ring->shrink_image_stream ();
-}
-
-void
-Terminal::freeze_hidden_images_before_view_area (double start_pos, double end_pos)
-{
-	VteRing *ring = m_screen->row_data;
-	auto image_map = ring->m_image_map;
-	/* for images before view area */
-	vte::grid::row_t top_of_view = (vte::grid::row_t)start_pos;
-	typedef std::remove_pointer<decltype(ring->m_image_map)>::type map_t;
-
-	/* iterate from new to old */
-	for (auto it = map_t::reverse_iterator (image_map->lower_bound (top_of_view)); it != image_map->rend (); ++it) {
-		vte::image::Image *image = it->second;
-		if (image->get_bottom () + 1 < end_pos)
-			break;
-		if (! image->is_frozen ()) {
-			ring->m_image_onscreen_resource_counter -= image->resource_size ();
-			image->freeze ();
-			ring->m_image_offscreen_resource_counter += image->resource_size ();
-			_vte_debug_print (VTE_DEBUG_IMAGE,
-			                  "frozen, onscreen: %zu, offscreen: %zu\n",
-			                  ring->m_image_onscreen_resource_counter,
-			                  ring->m_image_offscreen_resource_counter);
-		}
-	}
-}
-
-void
-Terminal::freeze_hidden_images_after_view_area (double start_pos, double end_pos)
-{
-	VteRing *ring = m_screen->row_data;
-	auto image_map = ring->m_image_map;
-	vte::grid::row_t bottom_of_view = (vte::grid::row_t)(start_pos + m_row_count);
-
-	/* for images after view area */
-	for (auto it = image_map->lower_bound (bottom_of_view); it != image_map->end (); ++it) {
-		vte::image::Image *image = it->second;
-		if (image->get_top () < end_pos + m_row_count)
-			break;
-		if (image->get_top () > bottom_of_view && ! image->is_frozen ()) {
-			ring->m_image_onscreen_resource_counter -= image->resource_size ();
-			image->freeze ();
-			ring->m_image_offscreen_resource_counter += image->resource_size ();
-			_vte_debug_print (VTE_DEBUG_IMAGE,
-			                  "frozen, onscreen: %zu, offscreen: %zu\n",
-			                  ring->m_image_onscreen_resource_counter,
-			                  ring->m_image_offscreen_resource_counter);
-		}
-	}
 }
 
 void
@@ -7771,12 +7715,6 @@ Terminal::vadjustment_value_changed()
 		_vte_debug_print(VTE_DEBUG_ADJ,
 			    "Scrolling by %f\n", dy);
 
-                if (dy > 0.0) {
-			freeze_hidden_images_before_view_area (adj, adj - dy);
-                } else {
-			freeze_hidden_images_after_view_area (adj, adj - dy);
-                }
-
                 invalidate_all();
                 match_contents_clear();
 		emit_text_scrolled(dy);
@@ -9381,15 +9319,6 @@ Terminal::widget_draw(cairo_t *cr)
 			vte::image::Image *image = it->second;
 			if (image->get_top () > bottom_row)
 				break;
-			if (image->is_frozen ()) {
-				ring->m_image_offscreen_resource_counter -= image->resource_size ();
-				image->thaw ();
-				ring->m_image_onscreen_resource_counter += image->resource_size ();
-				_vte_debug_print (VTE_DEBUG_IMAGE,
-				                  "thawn, onscreen: %zu, offscreen: %zu\n",
-				                  ring->m_image_onscreen_resource_counter,
-				                  ring->m_image_offscreen_resource_counter);
-			}
 			/* Display images */
 			int x = m_padding.left + image->get_left () * m_cell_width;
 			int y = m_padding.top + (image->get_top () - m_screen->scroll_delta) * m_cell_height;
