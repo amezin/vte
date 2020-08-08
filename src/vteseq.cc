@@ -3075,73 +3075,6 @@ Terminal::DECIC(vte::parser::Sequence const& seq)
          */
 }
 
-#if 0
-static void
-vte_sequence_handler_device_control_string (VteTerminalPrivate *that, GValueArray *params)
-{
-	GValue *value;
-	char *dcs = NULL;
-	char *p;
-	glong cmd = 0;
-	gint param;
-	size_t nparams = 0;
-	gint dcsparams[DECSIXEL_PARAMS_MAX];
-
-	value = g_value_array_get_nth(params, 0);
-	if (!value)
-		return;
-	if (G_VALUE_HOLDS_STRING(value)) {
-		/* Copy the string into the buffer. */
-		dcs = g_value_dup_string(value);
-	}
-	else if (G_VALUE_HOLDS_POINTER(value)) {
-		dcs = that->ucs4_to_utf8((const guchar *)g_value_get_pointer (value));
-	}
-	if (! dcs)
-		return;
-
-	for (p = dcs; p; ++p) {
-		switch (*p) {
-		case ' ' ... '/':
-			cmd = cmd << 8 | *p;
-			if (cmd > (1 << 24))
-				goto end;
-			break;
-		case '0' ... '9':
-			if (param < 0)
-				param = 0;
-			param = param * 10 + *p - '0';
-			break;
-		case ';':
-			if (param < 0)
-				param = 0;
-			if (nparams < sizeof(dcsparams) / sizeof(dcsparams[0]))
-				dcsparams[nparams++] = param;
-			param = 0;
-			break;
-		case '@' ... '~':
-			cmd = cmd << 8 | *p;
-			goto dispatch;
-		default:
-		    goto end;
-		}
-	}
-
-dispatch:
-	switch (cmd) {
-	case 'q':
-		if (that->m_sixel_enabled)
-			that->seq_load_sixel(dcs);
-		break;
-	default:
-		break;
-	}
-
-end:
-	g_free(dcs);
-}
-#endif
-
 void
 Terminal::seq_load_sixel(char const* dcs)
 {
@@ -4495,6 +4428,15 @@ Terminal::DECSIXEL(vte::parser::Sequence const& seq)
          *
          * References: VT330
          */
+        if (!m_sixel_enabled)
+                return;
+
+        auto buf = seq.string_utf8();
+        char *dcs = (char *) buf.c_str();
+        if (!dcs)
+                return;
+
+        seq_load_sixel(dcs + 1);
 }
 
 void
