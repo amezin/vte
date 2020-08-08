@@ -44,6 +44,7 @@ Image::paint(cairo_t *cr, int offset_x, int offset_y, int cell_width, int cell_h
         /* FIXME-hpj: Scale the image if cell width/height is different */
 
         cairo_save(cr);
+        cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
         cairo_rectangle(cr, offset_x, offset_y, m_width_pixels, m_height_pixels);
         cairo_clip(cr);
         cairo_set_source_surface(cr, m_surface.get(), offset_x, offset_y);
