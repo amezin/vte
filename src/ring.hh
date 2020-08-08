@@ -116,7 +116,7 @@ public:
 
         int m_next_image_priority;
 
-        std::map<gint, vte::image::Image *> *m_image_map;
+        std::map<gint, vte::image::Image *> *m_image_by_top_map;
         std::map<int, vte::image::Image *> *m_image_priority_map;
         unsigned int m_image_fast_memory_used;
 
@@ -136,6 +136,11 @@ private:
         void image_gc();
         void image_gc_region();
         hyperlink_idx_t get_hyperlink_idx_no_update_current(char const* hyperlink);
+
+        void unlink_image_from_top_map(vte::image::Image *image);
+        void rebuild_image_top_map();
+        bool rewrap_images_in_range(std::map<int,vte::image::Image*>::iterator &it,
+                                    size_t text_start_ofs, size_t text_end_ofs, row_t new_row_index);
 
         typedef struct _CellAttrChange {
                 gsize text_end_offset;  /* offset of first character no longer using this attr */

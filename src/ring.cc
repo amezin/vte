@@ -96,7 +96,7 @@ Ring::Ring(row_t max_rows,
         g_ptr_array_add(m_hyperlinks, empty_str);
 
         m_next_image_priority = 0;
-        m_image_map = new (std::nothrow) std::map<gint, vte::image::Image *>();
+        m_image_by_top_map = new (std::nothrow) std::map<gint, vte::image::Image *>();
         m_image_priority_map = new (std::nothrow) std::map<int, vte::image::Image *>();
         m_image_fast_memory_used = 0;
 
@@ -105,7 +105,7 @@ Ring::Ring(row_t max_rows,
 
 Ring::~Ring()
 {
-	auto image_map = m_image_map;
+	auto image_map = m_image_by_top_map;
 
 	for (size_t i = 0; i <= m_mask; i++)
 		_vte_row_data_fini (&m_array[i]);
@@ -116,7 +116,7 @@ Ring::~Ring()
 	for (auto it = image_map->begin (); it != image_map->end (); ++it)
 		delete it->second;
 	image_map->clear();
-	delete m_image_map;
+	delete m_image_by_top_map;
         delete m_image_priority_map;
 
 	if (m_has_streams) {
@@ -236,8 +236,7 @@ Ring::image_gc_region()
 
                         /* Apparently this is the cleanest way to erase() with a reverse iterator... */
                         it = decltype(it){m_image_priority_map->erase(std::next(it).base())};
-
-                        m_image_map->erase(image->get_bottom());
+                        unlink_image_from_top_map(image);
                         delete image;
                         continue;
                 }
@@ -261,10 +260,56 @@ Ring::image_gc()
 
                 vte::image::Image *image = m_image_priority_map->begin()->second;
                 m_image_fast_memory_used -= image->resource_size();
-                m_image_map->erase(image->get_bottom());
                 m_image_priority_map->erase(m_image_priority_map->begin());
+                unlink_image_from_top_map(image);
                 delete image;
         }
+}
+
+void
+Ring::unlink_image_from_top_map(vte::image::Image *image)
+{
+        for (auto it = m_image_by_top_map->find(image->get_top()); it != m_image_by_top_map->end(); it++) {
+                vte::image::Image *cur_image = it->second;
+
+                if (cur_image->get_priority() == image->get_priority()) {
+                        m_image_by_top_map->erase(it);
+                        break;
+                }
+        }
+}
+
+void
+Ring::rebuild_image_top_map()
+{
+        m_image_by_top_map->clear();
+
+        for (auto it = m_image_priority_map->begin(); it != m_image_priority_map->end(); it++) {
+                vte::image::Image *image = it->second;
+                m_image_by_top_map->insert(std::make_pair(image->get_top(), image));
+        }
+}
+
+bool
+Ring::rewrap_images_in_range(std::map<int,vte::image::Image*>::iterator &it,
+                             size_t text_start_ofs, size_t text_end_ofs, row_t new_row_index)
+{
+        for ( ; it != m_image_by_top_map->end(); it++) {
+                vte::image::Image *image = it->second;
+                CellTextOffset ofs;
+
+                if (!frozen_row_column_to_text_offset(image->get_top(), 0, &ofs))
+                        return false;
+
+                if (ofs.text_offset >= text_end_ofs)
+                        break;
+
+                if (ofs.text_offset >= text_start_ofs && ofs.text_offset < text_end_ofs) {
+                        image->set_top(new_row_index);
+                }
+        }
+
+        return true;
 }
 
 /*
@@ -661,7 +706,7 @@ Ring::reset_streams(row_t position)
 Ring::row_t
 Ring::reset()
 {
-	auto image_map = m_image_map;
+	auto image_map = m_image_by_top_map;
 
         _vte_debug_print (VTE_DEBUG_RING, "Reseting the ring at %lu.\n", m_end);
 
@@ -1106,7 +1151,16 @@ Ring::frozen_row_column_to_text_offset(row_t position,
 	} else
 		records[1].text_start_offset = _vte_stream_head(m_text_stream);
 
-	g_string_set_size (buffer, records[1].text_start_offset - records[0].text_start_offset);
+	offset->fragment_cells = 0;
+	offset->eol_cells = -1;
+	offset->text_offset = records[0].text_start_offset;
+
+        /* Save some work if we're in column 0. This holds true for images, whose column
+         * positions are disregarded for the purposes of wrapping. */
+        if (column == 0)
+                return true;
+
+        g_string_set_size (buffer, records[1].text_start_offset - records[0].text_start_offset);
 	if (!_vte_stream_read(m_text_stream, records[0].text_start_offset, buffer->str, buffer->len))
 		return false;
 
@@ -1118,8 +1172,6 @@ Ring::frozen_row_column_to_text_offset(row_t position,
 	/* row and buffer now contain the same text, in different representation */
 
 	/* count the number of characters up to the given column */
-	offset->fragment_cells = 0;
-	offset->eol_cells = -1;
 	num_chars = 0;
 	for (i = 0, cell = row->cells; i < row->len && i < column; i++, cell++) {
 		if (G_LIKELY (!cell->attr.fragment())) {
@@ -1140,7 +1192,7 @@ Ring::frozen_row_column_to_text_offset(row_t position,
 		off++;
 		if ((buffer->str[off] & 0xC0) != 0x80) num_chars--;
 	}
-	offset->text_offset = records[0].text_start_offset + off;
+	offset->text_offset += off;
 	return true;
 }
 
@@ -1252,6 +1304,7 @@ Ring::rewrap(column_t columns,
 	gsize paragraph_len;  /* excluding trailing '\n' */
 	gsize attr_offset;
 	gsize old_ring_end;
+        auto image_it = m_image_by_top_map->begin();
 
 	if (G_UNLIKELY(length() == 0))
 		return;
@@ -1386,10 +1439,15 @@ Ring::rewrap(column_t columns,
 										"      Marker #%d will be here in row %lu\n", i, new_row_index);
 							}
 						}
+
+                                                if (!rewrap_images_in_range(image_it, new_record.text_start_offset, text_offset, new_row_index))
+                                                        goto err;
+
 						new_row_index++;
 						new_record.text_start_offset = text_offset;
 						new_record.attr_start_offset = attr_offset;
 						col = 0;
+
 					}
 					if (paragraph_is_ascii) {
 						/* Shortcut for quickly wrapping ASCII (excluding TAB) text.
@@ -1433,6 +1491,10 @@ Ring::rewrap(column_t columns,
 						"      Marker #%d will be here in row %lu\n", i, new_row_index);
 			}
 		}
+
+                if (!rewrap_images_in_range(image_it, new_record.text_start_offset, paragraph_end_text_offset, new_row_index))
+                        goto err;
+
 		new_row_index++;
 		paragraph_start_text_offset = paragraph_end_text_offset;
 	}
@@ -1464,6 +1526,8 @@ Ring::rewrap(column_t columns,
 	}
 	g_free(marker_text_offsets);
 	g_free(new_markers);
+
+        rebuild_image_top_map();
 
 	_vte_debug_print(VTE_DEBUG_RING, "Ring after rewrapping:\n");
         validate();
@@ -1594,15 +1658,7 @@ Ring::append_image (cairo_surface_t *surface, gint pixelwidth, gint pixelheight,
                                           cell_width, cell_height);
 	g_assert (image != NULL);
 
-	/*
-	 * Now register new image to the m_image_map container.
-	 * the key is bottom positon.
-	 *  +----------+
-	 *  |   new    |
-	 *  |          |
-	 *  +----------+ <- bottom position (key)
-	 */
-	m_image_map->insert (std::make_pair (image->get_bottom (), image));
+	m_image_by_top_map->insert (std::make_pair (image->get_top (), image));
         m_image_priority_map->insert (std::make_pair (image->get_priority (), image));
 	m_image_fast_memory_used += image->resource_size ();
 
