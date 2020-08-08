@@ -120,6 +120,29 @@ interp_colors (uint32_t a, uint32_t b, int fraction, int total)
                 | (interp_u8 (a >> 24, b >> 24, fraction, total) << 24);
 }
 
+static int
+transform_range (int n, int old_min, int old_max, int new_min, int new_max)
+{
+        if (new_min == new_max)
+                return new_min;
+
+        if (n < old_min)
+                n = old_min;
+        if (n > old_max)
+                n = old_max;
+
+        return ((n - old_min) * (new_max - new_min) / (old_max - old_min)) + new_min;
+}
+
+/* Transform to sixel color channels, which are in the 0..100 range. */
+static void
+argb_to_sixel_rgb (uint32_t argb, int *r, int *g, int *b)
+{
+        *r = transform_range ((argb >> 16) & 0xff, 0, 256, 0, 101);
+        *g = transform_range ((argb >> 8) & 0xff, 0, 256, 0, 101);
+        *b = transform_range (argb & 0xff, 0, 256, 0, 101);
+}
+
 static void
 image_init (Image *image, int width, int height, int n_colors)
 {
@@ -219,12 +242,11 @@ image_print_sixels_palette (const Image *image, GString *gstr)
 
         for (pen = 0; pen < image->n_colors; pen++) {
                 uint32_t col = image->palette [pen_to_slot (pen)];
+                int r, g, b;
 
+                argb_to_sixel_rgb (col, &r, &g, &b);
                 g_string_append_printf (gstr, "#%d;2;%d;%d;%d",
-                                        pen_to_slot (pen),
-                                        (col >> 16) & 0xff,
-                                        (col >> 8) & 0xff,
-                                        col & 0xff);
+                                        pen_to_slot (pen), r, g, b);
         }
 }
 
@@ -345,10 +367,14 @@ Options;
 static int
 random_int_in_range (int min, int max)
 {
-        assert (min <= max);
-
         if (min == max)
                 return min;
+
+        if (min > max) {
+                int t = max;
+                max = min;
+                min = t;
+        }
 
         return min + (random () % (max - min));
 }
@@ -397,7 +423,13 @@ print_random_image (const Options *options, GString *gstr)
 
         image_init (&image, dim, dim,
                     random_int_in_range (TEST_PALETTE_SIZE_MIN, TEST_PALETTE_SIZE_MAX));
-        image_generate (&image, 0x00ff0000, 0x000000ff);
+
+        /* In order to produce colors that contrast both white and black backgrounds,
+         * limit the range of the red component. This doesn't work reliably with grey
+         * backgrounds, but eh. */
+        image_generate (&image,
+                        random_int_in_range (0x00400000, 0x00a00000),
+                        random_int_in_range (0x00400000, 0x00a00000));
 
         cursor_to_random_offset ((options->term_width_pixels - dim) / options->term_cell_width,
                                  (options->term_height_pixels - dim) / options->term_cell_height,
