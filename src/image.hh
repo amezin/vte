@@ -64,11 +64,11 @@ public:
 
         inline constexpr auto get_priority() const noexcept { return m_priority; }
         inline constexpr auto get_left() const noexcept { return m_left_cells; }
-        inline constexpr auto get_top() const noexcept { return m_top_cells; }
+        inline auto get_top() const noexcept { return m_top_cells; }
         inline void set_top(int row) noexcept { m_top_cells = row; }
         inline constexpr auto get_width() const noexcept { return (m_width_pixels + m_cell_width - 1) / m_cell_width; }
         inline constexpr auto get_height() const noexcept { return (m_height_pixels + m_cell_height - 1) / m_cell_height; }
-        inline constexpr auto get_bottom() const noexcept { return m_top_cells + get_height() - 1; }
+        inline auto get_bottom() const noexcept { return m_top_cells + get_height() - 1; }
         inline auto resource_size() const noexcept {
                 if (cairo_image_surface_get_stride(m_surface.get()) != 0)
                         return cairo_image_surface_get_stride(m_surface.get()) * m_height_pixels;
