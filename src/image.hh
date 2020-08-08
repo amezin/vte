@@ -53,14 +53,14 @@ public:
         {
         }
 
-        constexpr auto const get_left() const noexcept { return m_left; }
-        constexpr auto const get_top() const noexcept { return m_top; }
-        constexpr auto const get_bottom() const noexcept { return m_top + m_height - 1; }
-        auto const resource_size() const noexcept {
+        inline constexpr auto get_left() const noexcept { return m_left; }
+        inline constexpr auto get_top() const noexcept { return m_top; }
+        inline constexpr auto get_bottom() const noexcept { return m_top + m_height - 1; }
+        inline auto resource_size() const noexcept {
                 return cairo_image_surface_get_stride(m_surface.get()) * m_pixelheight;
         }
-        bool contains(const Image &other) const;
-        void paint(cairo_t *cr, gint offsetx, gint offsety);
+        bool contains(const Image &other) const noexcept;
+        void paint(cairo_t *cr, gint offsetx, gint offsety) const noexcept;
 };
 
 } // namespace image
