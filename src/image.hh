@@ -52,8 +52,8 @@ public:
         size_t resource_size() const;
         void freeze();
         bool thaw();
-        bool subsume(Image *rhs, gulong char_width, gulong char_height);
-        bool unite(Image *rhs, gulong char_width, gulong char_height);
+        bool subsume(Image *rhs, gulong cell_width, gulong cell_height);
+        bool unite(Image *rhs, gulong cell_width, gulong cell_height);
         bool paint(cairo_t *cr, gint offsetx, gint offsety);
 
         /* Callbacks */

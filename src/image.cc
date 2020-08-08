@@ -164,14 +164,14 @@ Image::freeze()
 
 /* Merge another image into this image */
 bool
-Image::subsume(Image *other, unsigned long char_width, unsigned long char_height)
+Image::subsume(Image *other, unsigned long cell_width, unsigned long cell_height)
 {
         cairo_t *cr;
 
         assert(other != nullptr);
 
-        unsigned long offsetx = (other->m_left - m_left) * char_width;
-        unsigned long offsety = (other->m_top - m_top) * char_height;
+        unsigned long offsetx = (other->m_left - m_left) * cell_width;
+        unsigned long offsety = (other->m_top - m_top) * cell_height;
 
         if (is_frozen())
                 if (!thaw())
@@ -192,7 +192,7 @@ Image::subsume(Image *other, unsigned long char_width, unsigned long char_height
 }
 
 bool
-Image::unite(Image *other, unsigned long char_width, unsigned long char_height)
+Image::unite(Image *other, unsigned long cell_width, unsigned long cell_height)
 {
         if (is_frozen())
                 if (!thaw())
@@ -202,10 +202,10 @@ Image::unite(Image *other, unsigned long char_width, unsigned long char_height)
         int new_top = std::min(m_top, other->m_top);
         int new_width = std::max(m_left + m_width, other->m_left + other->m_width) - new_left;
         int new_height = std::max(m_top + m_height, other->m_top + other->m_width) - new_top;
-        int pixelwidth = new_width * char_width;
-        int pixelheight = new_height * char_height;
-        int offsetx = (m_left - new_left) * char_width;
-        int offsety = (m_top - new_top) * char_height;
+        int pixelwidth = new_width * cell_width;
+        int pixelheight = new_height * cell_height;
+        int offsetx = (m_left - new_left) * cell_width;
+        int offsety = (m_top - new_top) * cell_height;
 
         cairo_surface_t * new_surface = cairo_surface_create_similar(other->m_surface, CAIRO_CONTENT_COLOR_ALPHA, m_pixelwidth, m_pixelheight);
         cairo_t *cr = cairo_create(new_surface);
@@ -225,7 +225,7 @@ Image::unite(Image *other, unsigned long char_width, unsigned long char_height)
         m_pixelheight = pixelheight;
         m_surface = new_surface;
 
-        return subsume(other, char_width, char_height);
+        return subsume(other, cell_width, cell_height);
 }
 
 /* Paint the image with provided cairo context */
