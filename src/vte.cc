@@ -7561,9 +7561,9 @@ Terminal::screen_set_size(VteScreen *screen_,
 }
 
 bool
-Terminal::set_sixel_enabled(bool enabled)
+Terminal::set_images_enabled(bool enabled)
 {
-        m_sixel_enabled = enabled;
+        m_images_enabled = enabled;
 
         return true;
 }
@@ -7735,7 +7735,7 @@ Terminal::Terminal(vte::platform::Widget* w,
 
         /* Image */
         m_frozen_image_limit = VTE_DEFAULT_FROZEN_IMAGE_LIMIT;
-        m_sixel_enabled = TRUE;
+        m_images_enabled = TRUE;
 
         reset_default_attributes(true);
 
@@ -9254,7 +9254,7 @@ Terminal::widget_draw(cairo_t *cr)
 
 	/* Draw images */
 
-	if (m_sixel_enabled) {
+	if (m_images_enabled) {
 		vte::grid::row_t top_row = first_displayed_row();
 		vte::grid::row_t bottom_row = last_displayed_row();
 		auto image_map = ring->m_image_priority_map;

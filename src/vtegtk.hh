@@ -94,7 +94,7 @@ enum {
         PROP_TEXT_BLINK_MODE,
         PROP_WINDOW_TITLE,
         PROP_WORD_CHAR_EXCEPTIONS,
-        PROP_SIXEL_ENABLED,
+        PROP_IMAGES_ENABLED,
         LAST_PROP,
 
         /* override properties */

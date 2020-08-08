@@ -753,13 +753,14 @@ public:
                                                             this),
                                                   "mouse-autoscroll-timer"};
 
-        /* SIXEL feature */
+        /* Inline images */
+        gboolean m_images_enabled;
+
         gboolean m_sixel_display_mode;
         gboolean m_sixel_scrolls_right;
         gboolean m_sixel_use_private_register;
         sixel_state_t m_sixel_state;
         gulong m_frozen_image_limit;
-        gboolean m_sixel_enabled;
 
 	/* State variables for handling match checks. */
         int m_match_regex_next_tag{0};
@@ -1519,7 +1520,7 @@ public:
         bool set_scrollback_lines(long lines);
         bool set_scroll_on_keystroke(bool scroll);
         bool set_scroll_on_output(bool scroll);
-        bool set_sixel_enabled(bool enabled);
+        bool set_images_enabled(bool enabled);
         bool set_word_char_exceptions(std::optional<std::string_view> stropt);
         void set_clear_background(bool setting);
 
