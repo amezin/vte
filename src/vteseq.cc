@@ -4390,9 +4390,6 @@ Terminal::DECSIXEL(vte::parser::Sequence const& seq)
 	}
 	sixel_parser_deinit(&m_sixel_state);
 
-	if (m_sixel_display_mode)
-		home_cursor();
-
 	/* Calculate geometry */
 
 	left = m_screen->cursor.col;
@@ -4438,9 +4435,6 @@ Terminal::DECSIXEL(vte::parser::Sequence const& seq)
 			cursor_down(true);
 		}
 	}
-
-	if (m_sixel_display_mode)
-		home_cursor();
 }
 
 void

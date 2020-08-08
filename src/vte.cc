@@ -9952,8 +9952,6 @@ Terminal::reset(bool clear_tabstops,
 	m_mouse_smooth_scroll_delta = 0.;
 	/* Clear modifiers. */
 	m_modifiers = 0;
-	/* Reset SIXEL display mode */
-	m_sixel_display_mode = FALSE;
 	/* Reset SIXEL-scrolls-right mode */
 	m_sixel_scrolls_right = FALSE;
 	/* Reset privae color register mode */
