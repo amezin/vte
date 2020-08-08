@@ -112,7 +112,7 @@ public:
 	row_t m_start{0};
         row_t m_end{0};
 
-        std::map<gint, vte::image::image_object *> *m_image_map;
+        std::map<gint, vte::image::Image *> *m_image_map;
         gulong m_image_onscreen_resource_counter;
         gulong m_image_offscreen_resource_counter;
 

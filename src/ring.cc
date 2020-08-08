@@ -88,7 +88,7 @@ Ring::Ring(row_t max_rows,
         auto empty_str = g_string_new_len("", 0);
         g_ptr_array_add(m_hyperlinks, empty_str);
 
-        m_image_map = new (std::nothrow) std::map<gint, vte::image::image_object *>();
+        m_image_map = new (std::nothrow) std::map<gint, vte::image::Image *>();
         m_image_onscreen_resource_counter = 0;
         m_image_offscreen_resource_counter = 0;
 
@@ -1524,10 +1524,10 @@ void
 Ring::append_image (cairo_surface_t *surface, gint pixelwidth, gint pixelheight, glong left, glong top, glong width, glong height)
 {
 	using namespace vte::image;
-	image_object *image;
+	Image *image;
 	gulong char_width, char_height;
 
-	image = new (std::nothrow) image_object (surface, pixelwidth, pixelheight, left, top, width, height, m_image_stream);
+	image = new (std::nothrow) Image (surface, pixelwidth, pixelheight, left, top, width, height, m_image_stream);
 	g_assert_true (image != NULL);
 
 	char_width = pixelwidth / width;
@@ -1535,7 +1535,7 @@ Ring::append_image (cairo_surface_t *surface, gint pixelwidth, gint pixelheight,
 
 	/* composition */
 	for (auto it = m_image_map->lower_bound (top); it != m_image_map->end (); ) {
-		image_object *current = it->second;
+		Image *current = it->second;
 
 		/* Combine two images if one's area includes another's area */
 		if (image->includes (current)) {
@@ -1638,7 +1638,7 @@ void
 Ring::shrink_image_stream ()
 {
 	using namespace vte::image;
-	image_object *first_image;
+	Image *first_image;
 
 	if (m_image_map->empty())
 		return;

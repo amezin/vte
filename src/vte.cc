@@ -4237,7 +4237,7 @@ Terminal::maybe_remove_images ()
 {
 	VteRing *ring = m_screen->row_data;
 	auto image_map = ring->m_image_map;
-	vte::image::image_object *image;
+	vte::image::Image *image;
 
 	auto it = image_map->begin();
 
@@ -4307,7 +4307,7 @@ Terminal::freeze_hidden_images_before_view_area (double start_pos, double end_po
 
 	/* iterate from new to old */
 	for (auto it = map_t::reverse_iterator (image_map->lower_bound (top_of_view)); it != image_map->rend (); ++it) {
-		vte::image::image_object *image = it->second;
+		vte::image::Image *image = it->second;
 		if (image->get_bottom () + 1 < end_pos)
 			break;
 		if (! image->is_freezed ()) {
@@ -4331,7 +4331,7 @@ Terminal::freeze_hidden_images_after_view_area (double start_pos, double end_pos
 
 	/* for images after view area */
 	for (auto it = image_map->lower_bound (bottom_of_view); it != image_map->end (); ++it) {
-		vte::image::image_object *image = it->second;
+		vte::image::Image *image = it->second;
 		if (image->get_top () < end_pos + m_row_count)
 			break;
 		if (image->get_top () > bottom_of_view && ! image->is_freezed ()) {
@@ -9378,7 +9378,7 @@ Terminal::widget_draw(cairo_t *cr)
 		auto image_map = ring->m_image_map;
 		auto it = image_map->lower_bound (top_row);
 		for (; it != image_map->end (); ++it) {
-			vte::image::image_object *image = it->second;
+			vte::image::Image *image = it->second;
 			if (image->get_top () > bottom_row)
 				break;
 			if (image->is_freezed ()) {

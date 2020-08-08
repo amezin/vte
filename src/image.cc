@@ -24,8 +24,8 @@ namespace vte {
 
 namespace image {
 
-/* image_object implementation */
-image_object::image_object (cairo_surface_t *surface, gint pixelwidth, gint pixelheight, gint col, gint row, gint w, gint h, _VteStream *stream)
+/* Image implementation */
+Image::Image (cairo_surface_t *surface, gint pixelwidth, gint pixelheight, gint col, gint row, gint w, gint h, _VteStream *stream)
 {
 	m_pixelwidth = pixelwidth;
 	m_pixelheight = pixelheight;
@@ -39,7 +39,7 @@ image_object::image_object (cairo_surface_t *surface, gint pixelwidth, gint pixe
 	g_object_ref (m_stream);
 }
 
-image_object::~image_object ()
+Image::~Image ()
 {
 	if (m_surface)
 		cairo_surface_destroy (m_surface);
@@ -47,39 +47,39 @@ image_object::~image_object ()
 }
 
 glong
-image_object::get_left () const
+Image::get_left () const
 {
 	return (glong)m_left;
 }
 
 glong
-image_object::get_top () const
+Image::get_top () const
 {
 	return (glong)m_top;
 }
 
 glong
-image_object::get_bottom () const
+Image::get_bottom () const
 {
 	return (glong)(m_top + m_height - 1);
 }
 
 gulong
-image_object::get_stream_position () const
+Image::get_stream_position () const
 {
 	return m_position;
 }
 
 /* Indicate whether the image is serialized to the stream */
 bool
-image_object::is_freezed () const
+Image::is_freezed () const
 {
 	return (m_surface == NULL);
 }
 
 /* Test whether this image includes given image */
 bool
-image_object::includes (const image_object *other) const
+Image::includes (const Image *other) const
 {
 	g_assert_true (other != NULL);
 
@@ -90,7 +90,7 @@ image_object::includes (const image_object *other) const
 }
 
 size_t
-image_object::resource_size () const
+Image::resource_size () const
 {
 	size_t result_size;
 
@@ -111,7 +111,7 @@ image_object::resource_size () const
 
 /* Deserialize the cairo image from the temporary file */
 bool
-image_object::thaw ()
+Image::thaw ()
 {
 	if (m_surface)
 		return true;
@@ -128,7 +128,7 @@ image_object::thaw ()
 
 /* Serialize the image for saving RAM */
 void
-image_object::freeze ()
+Image::freeze ()
 {
 	cairo_status_t status;
 	double x_scale, y_scale;
@@ -160,7 +160,7 @@ image_object::freeze ()
 
 /* Merge another image into this image */
 bool
-image_object::combine (image_object *other, gulong char_width, gulong char_height)
+Image::combine (Image *other, gulong char_width, gulong char_height)
 {
 	cairo_t *cr;
 
@@ -188,7 +188,7 @@ image_object::combine (image_object *other, gulong char_width, gulong char_heigh
 }
 
 bool
-image_object::unite (image_object *other, gulong char_width, gulong char_height)
+Image::unite (Image *other, gulong char_width, gulong char_height)
 {
 	if (is_freezed ())
 		if (! thaw ())
@@ -226,7 +226,7 @@ image_object::unite (image_object *other, gulong char_width, gulong char_height)
 
 /* Paint the image into given cairo rendering context */
 bool
-image_object::paint (cairo_t *cr, gint offsetx, gint offsety)
+Image::paint (cairo_t *cr, gint offsetx, gint offsety)
 {
 	if (is_freezed ())
 		if (! thaw ())
@@ -245,9 +245,9 @@ image_object::paint (cairo_t *cr, gint offsetx, gint offsety)
 /* callback routines for stream I/O */
 
 cairo_status_t
-image_object::read_callback (void *closure, char *data, unsigned int length)
+Image::read_callback (void *closure, char *data, unsigned int length)
 {
-	image_object *image = (image_object *)closure;
+	Image *image = (Image *)closure;
 
 	g_assert_true (image != NULL);
 
@@ -258,9 +258,9 @@ image_object::read_callback (void *closure, char *data, unsigned int length)
 }
 
 cairo_status_t
-image_object::write_callback (void *closure, const char *data, unsigned int length)
+Image::write_callback (void *closure, const char *data, unsigned int length)
 {
-	image_object *image = (image_object *)closure;
+	Image *image = (Image *)closure;
 
 	g_assert_true (image != NULL);
 
