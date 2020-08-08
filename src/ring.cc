@@ -103,7 +103,7 @@ Ring::~Ring()
 
 	g_free (m_array);
 
-	/* Clear SIXEL images */
+	/* Clear sixel images */
 	for (auto it = image_map->begin (); it != image_map->end (); ++it)
 		delete it->second;
 	image_map->clear();
@@ -606,7 +606,7 @@ Ring::reset()
         m_start = m_writable = m_end;
         m_cached_row_num = (row_t)-1;
 
-	/* Clear SIXEL images */
+	/* Clear sixel images */
 	for (auto it = image_map->begin (); it != image_map->end (); ++it)
 		delete it->second;
 	image_map->clear();
@@ -1531,22 +1531,11 @@ Ring::append_image (cairo_surface_t *surface, gint pixelwidth, gint pixelheight,
 	char_width = pixelwidth / width;
 	char_height = pixelwidth / height;
 
-	/* composition */
 	for (auto it = m_image_map->lower_bound (top); it != m_image_map->end (); ) {
 		Image *current = it->second;
 
-		/* Combine two images if one's area contains another's area */
+		/* Delete images that are completely covered by this image */
 		if (image->contains (*current)) {
-			/*
-			 * Replace current image with new image
-			 *
-			 *  +--------------+
-			 *  |     new      |
-			 *  | ...........  |
-			 *  | : current :  |
-			 *  | :.........:  |
-			 *  +--------------+
-			 */
                         m_image_onscreen_resource_counter -= current->resource_size ();
 
                         /* We must advance the iterator before erasure */
