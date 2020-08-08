@@ -24,7 +24,7 @@
 #include <string.h>  /* memcpy */
 #include <glib.h>
 
-#include "sixel.h"
+#include "sixelparser.hh"
 
 #define PACK_RGB(r, g, b) ((r) + ((g) << 8) +  ((b) << 16))
 #define SCALE_VALUE(n,a,m) (((n) * (a) + ((m) / 2)) / (m))

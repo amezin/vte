@@ -48,7 +48,7 @@
 
 #include "vtepcre2.h"
 #include "vteregexinternal.hh"
-#include "sixel.h"
+#include "sixelparser.hh"
 
 #include "chunk.hh"
 #include "pty.hh"

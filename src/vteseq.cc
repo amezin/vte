@@ -35,7 +35,6 @@
 #include "vtegtk.hh"
 #include "caps.hh"
 #include "debug.h"
-#include "sixel.h"
 
 #define BEL_C0 "\007"
 #define ST_C0 _VTE_CAP_ST
