@@ -5570,6 +5570,54 @@ catch (...)
         *color = {0., 0., 0., 1.};
 }
 
+/**
+ * vte_terminal_set_images_enabled:
+ * @terminal: a #VteTerminal
+ * @enabled: %TRUE to enable images, %FALSE otherwise.
+ *
+ * Set whether to enable inline images, e.g. SIXELs.
+ *
+ * Since: 0.62
+ */
+void
+vte_terminal_set_images_enabled(VteTerminal *terminal,
+                                gboolean enabled) noexcept
+try
+{
+        g_return_if_fail(VTE_IS_TERMINAL(terminal));
+
+        if (IMPL(terminal)->set_images_enabled(enabled))
+                g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_IMAGES_ENABLED]);
+}
+catch (...)
+{
+        vte::log_exception();
+}
+
+/**
+ * vte_terminal_get_images_enabled:
+ * @terminal: a #VteTerminal
+ *
+ * Get whether to enable inline images, e.g. SIXELs.
+ *
+ * Returns: %TRUE if image support is enabled, %FALSE otherwise.
+ *
+ * Since: 0.62
+ */
+gboolean
+vte_terminal_get_images_enabled(VteTerminal *terminal) noexcept
+try
+{
+        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
+
+        return IMPL(terminal)->m_images_enabled;
+}
+catch (...)
+{
+        vte::log_exception();
+        return false;
+}
+
 namespace vte {
 
 using namespace std::literals;
@@ -5674,36 +5722,3 @@ catch (...)
 
 } // namespace glib
 } // namespace vte
-
-/**
- * vte_terminal_set_images_enabled:
- * @terminal: a #VteTerminal
- * @enabled: %TRUE to enable images, %FALSE otherwise.
- *
- * Set whether to enable inline images, e.g. sixels.
- */
-void
-vte_terminal_set_images_enabled(VteTerminal *terminal, gboolean enabled)
-{
-        g_return_if_fail(VTE_IS_TERMINAL(terminal));
-
-        if (IMPL(terminal)->set_images_enabled(enabled))
-                g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_IMAGES_ENABLED]);
-}
-
-/**
- * vte_terminal_get_images_enabled:
- * @terminal: a #VteTerminal
- *
- * Get whether to enable inline images, e.g. sixels.
- *
- * Returns: %TRUE if image support is enabled, %FALSE otherwise.
- */
-
-gboolean
-vte_terminal_get_images_enabled(VteTerminal *terminal)
-{
-        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
-
-        return IMPL(terminal)->m_images_enabled;
-}

@@ -507,11 +507,11 @@ gboolean vte_terminal_write_contents_sync (VteTerminal *terminal,
 
 /* Set or get whether inline image support is enabled */
 _VTE_PUBLIC
-void vte_terminal_set_images_enabled (VteTerminal *terminal,
-                                      gboolean enabled) _VTE_GNUC_NONNULL(1);
+void vte_terminal_set_images_enabled(VteTerminal *terminal,
+                                     gboolean enabled) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 
 _VTE_PUBLIC
-gboolean vte_terminal_get_images_enabled (VteTerminal *terminal) _VTE_GNUC_NONNULL(1);
+gboolean vte_terminal_get_images_enabled(VteTerminal *terminal) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1);
 
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(VteTerminal, g_object_unref)
 
