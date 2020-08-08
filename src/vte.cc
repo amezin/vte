@@ -7552,14 +7552,6 @@ Terminal::screen_set_size(VteScreen *screen_,
 		screen_->scroll_delta = new_scroll_delta;
 }
 
-bool
-Terminal::set_images_enabled(bool enabled)
-{
-        m_images_enabled = enabled;
-
-        return true;
-}
-
 void
 Terminal::set_size(long columns,
                              long rows)
@@ -7724,9 +7716,6 @@ Terminal::Terminal(vte::platform::Widget* w,
 	m_strikethrough_position = 1;
         m_overline_position = 1;
         m_regex_underline_position = 1;
-
-        /* Images */
-        m_images_enabled = TRUE;
 
         reset_default_attributes(true);
 

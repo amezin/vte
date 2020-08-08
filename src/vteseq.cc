@@ -4337,7 +4337,7 @@ Terminal::DECSIXEL(vte::parser::Sequence const& seq)
          * References: VT330
          */
 
-        if (!m_images_enabled)
+        if (!m_sixel_enabled)
                 return;
 
 	unsigned char *pixels = NULL;

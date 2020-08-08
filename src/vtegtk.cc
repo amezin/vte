@@ -1911,13 +1911,13 @@ vte_terminal_class_init(VteTerminalClass *klass)
                                       (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
 
         /**
-         * VteTerminal:images-enabled:
+         * VteTerminal:sixel-enabled:
          *
-         * Controls whether inline image support is enabled.
+         * Controls whether SIXEL image support is enabled.
          */
-        pspecs[PROP_IMAGES_ENABLED] =
-                g_param_spec_boolean ("images-enabled", NULL, NULL,
-                                      TRUE,
+        pspecs[PROP_SIXEL_ENABLED] =
+                g_param_spec_boolean ("sixel-enabled", NULL, NULL,
+                                      VTE_SIXEL_ENABLED_DEFAULT,
                                       (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
 
 
@@ -5571,23 +5571,23 @@ catch (...)
 }
 
 /**
- * vte_terminal_set_images_enabled:
+ * vte_terminal_set_sixel_enabled:
  * @terminal: a #VteTerminal
- * @enabled: %TRUE to enable images, %FALSE otherwise.
+ * @enabled: whether to enable SIXEL images
  *
- * Set whether to enable inline images, e.g. SIXELs.
+ * Set whether to enable SIXEL images.
  *
  * Since: 0.62
  */
 void
-vte_terminal_set_images_enabled(VteTerminal *terminal,
-                                gboolean enabled) noexcept
+vte_terminal_set_sixel_enabled(VteTerminal *terminal,
+                               gboolean enabled) noexcept
 try
 {
         g_return_if_fail(VTE_IS_TERMINAL(terminal));
 
-        if (IMPL(terminal)->set_images_enabled(enabled))
-                g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_IMAGES_ENABLED]);
+        if (WIDGET(terminal)->set_sixel_enabled(enabled))
+                g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_SIXEL_ENABLED]);
 }
 catch (...)
 {
@@ -5595,22 +5595,20 @@ catch (...)
 }
 
 /**
- * vte_terminal_get_images_enabled:
+ * vte_terminal_get_sixel_enabled:
  * @terminal: a #VteTerminal
  *
- * Get whether to enable inline images, e.g. SIXELs.
- *
- * Returns: %TRUE if image support is enabled, %FALSE otherwise.
+ * Returns: %TRUE if SIXEL image support is enabled, %FALSE otherwise
  *
  * Since: 0.62
  */
 gboolean
-vte_terminal_get_images_enabled(VteTerminal *terminal) noexcept
+vte_terminal_get_sixel_enabled(VteTerminal *terminal) noexcept
 try
 {
         g_return_val_if_fail(VTE_IS_TERMINAL(terminal), FALSE);
 
-        return IMPL(terminal)->m_images_enabled;
+        return WIDGET(terminal)->sixel_enabled();
 }
 catch (...)
 {

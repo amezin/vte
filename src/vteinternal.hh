@@ -754,8 +754,18 @@ public:
                                                   "mouse-autoscroll-timer"};
 
         /* Inline images */
-        gboolean m_images_enabled;
+        bool m_sixel_enabled{VTE_SIXEL_ENABLED_DEFAULT};
+        bool m_images_enabled{VTE_SIXEL_ENABLED_DEFAULT};
         sixel_state_t m_sixel_state;
+
+        bool set_sixel_enabled(bool enabled) noexcept
+        {
+                auto const changed = m_sixel_enabled != enabled;
+                m_sixel_enabled = m_images_enabled = enabled;
+                return changed;
+        }
+
+        constexpr bool sixel_enabled() const noexcept { return m_sixel_enabled; }
 
 	/* State variables for handling match checks. */
         int m_match_regex_next_tag{0};

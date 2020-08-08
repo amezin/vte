@@ -90,10 +90,10 @@ enum {
         PROP_SCROLLBACK_LINES,
         PROP_SCROLL_ON_KEYSTROKE,
         PROP_SCROLL_ON_OUTPUT,
+        PROP_SIXEL_ENABLED,
         PROP_TEXT_BLINK_MODE,
         PROP_WINDOW_TITLE,
         PROP_WORD_CHAR_EXCEPTIONS,
-        PROP_IMAGES_ENABLED,
         LAST_PROP,
 
         /* override properties */
