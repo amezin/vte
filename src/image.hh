@@ -74,7 +74,7 @@ public:
                 return m_width_pixels * m_height_pixels * 4;
         }
         bool contains(const Image &other) const noexcept;
-        void paint(cairo_t *cr, gint offset_x, gint offset_y) const noexcept;
+        void paint(cairo_t *cr, gint offset_x, gint offset_y, int cell_width, int cell_height) const noexcept;
 };
 
 } // namespace image

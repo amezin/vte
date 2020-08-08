@@ -39,8 +39,10 @@ Image::contains(const Image &other) const noexcept
 
 /* Paint the image with provided cairo context */
 void
-Image::paint(cairo_t *cr, int offset_x, int offset_y) const noexcept
+Image::paint(cairo_t *cr, int offset_x, int offset_y, int cell_width, int cell_height) const noexcept
 {
+        /* FIXME-hpj: Scale the image if cell width/height is different */
+
         cairo_save(cr);
         cairo_rectangle(cr, offset_x, offset_y, m_width_pixels, m_height_pixels);
         cairo_clip(cr);

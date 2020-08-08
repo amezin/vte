@@ -9263,7 +9263,7 @@ Terminal::widget_draw(cairo_t *cr)
 
 			int x = m_padding.left + image->get_left () * m_cell_width;
 			int y = m_padding.top + (image->get_top () - m_screen->scroll_delta) * m_cell_height;
-			image->paint (cr, x, y);
+			image->paint (cr, x, y, m_cell_width, m_cell_height);
 		}
 	}
 
