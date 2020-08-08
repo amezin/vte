@@ -96,9 +96,9 @@ Ring::Ring(row_t max_rows,
         auto empty_str = g_string_new_len("", 0);
         g_ptr_array_add(m_hyperlinks, empty_str);
 
-        m_next_image_priority = 0;
         m_image_by_top_map = new (std::nothrow) std::map<gint, Image *>();
         m_image_priority_map = new (std::nothrow) std::map<int, Image *>();
+        m_next_image_priority = 0;
         m_image_fast_memory_used = 0;
 
 	validate();
@@ -113,11 +113,11 @@ Ring::~Ring()
 
 	g_free (m_array);
 
-	/* Clear sixel images */
-	for (auto it = image_map->begin (); it != image_map->end (); ++it)
-		delete it->second;
-	image_map->clear();
-	delete m_image_by_top_map;
+        /* Clear sixel images */
+        for (auto it = image_map->begin (); it != image_map->end (); ++it)
+                delete it->second;
+        image_map->clear();
+        delete m_image_by_top_map;
         delete m_image_priority_map;
 
 	if (m_has_streams) {
@@ -220,7 +220,7 @@ Ring::image_gc_region()
 {
         cairo_region_t *region = cairo_region_create();
 
-	for (auto it = m_image_priority_map->rbegin(); it != m_image_priority_map->rend(); ) {
+        for (auto it = m_image_priority_map->rbegin(); it != m_image_priority_map->rend(); ) {
                 Image *image = it->second;
                 cairo_rectangle_int_t r;
 
@@ -706,7 +706,7 @@ Ring::reset_streams(row_t position)
 Ring::row_t
 Ring::reset()
 {
-	auto image_map = m_image_by_top_map;
+        auto image_map = m_image_by_top_map;
 
         _vte_debug_print (VTE_DEBUG_RING, "Reseting the ring at %lu.\n", m_end);
 
@@ -714,10 +714,10 @@ Ring::reset()
         m_start = m_writable = m_end;
         m_cached_row_num = (row_t)-1;
 
-	/* Clear sixel images */
-	for (auto it = image_map->begin (); it != image_map->end (); ++it)
-		delete it->second;
-	image_map->clear();
+        /* Clear sixel images */
+        for (auto it = image_map->begin (); it != image_map->end (); ++it)
+                delete it->second;
+        image_map->clear();
         m_image_priority_map->clear();
         m_next_image_priority = 0;
         m_image_fast_memory_used = 0;
@@ -1305,7 +1305,7 @@ Ring::rewrap(column_t columns,
 	gsize paragraph_len;  /* excluding trailing '\n' */
 	gsize attr_offset;
 	gsize old_ring_end;
-        auto image_it = m_image_by_top_map->begin();
+	auto image_it = m_image_by_top_map->begin();
 
 	if (G_UNLIKELY(length() == 0))
 		return;
@@ -1441,8 +1441,8 @@ Ring::rewrap(column_t columns,
 							}
 						}
 
-                                                if (!rewrap_images_in_range(image_it, new_record.text_start_offset, text_offset, new_row_index))
-                                                        goto err;
+						if (!rewrap_images_in_range(image_it, new_record.text_start_offset, text_offset, new_row_index))
+							goto err;
 
 						new_row_index++;
 						new_record.text_start_offset = text_offset;
@@ -1493,8 +1493,8 @@ Ring::rewrap(column_t columns,
 			}
 		}
 
-                if (!rewrap_images_in_range(image_it, new_record.text_start_offset, paragraph_end_text_offset, new_row_index))
-                        goto err;
+		if (!rewrap_images_in_range(image_it, new_record.text_start_offset, paragraph_end_text_offset, new_row_index))
+			goto err;
 
 		new_row_index++;
 		paragraph_start_text_offset = paragraph_end_text_offset;
@@ -1528,7 +1528,7 @@ Ring::rewrap(column_t columns,
 	g_free(marker_text_offsets);
 	g_free(new_markers);
 
-        rebuild_image_top_map();
+	rebuild_image_top_map();
 
 	_vte_debug_print(VTE_DEBUG_RING, "Ring after rewrapping:\n");
         validate();
@@ -1649,23 +1649,20 @@ Ring::write_contents(GOutputStream* stream,
 void
 Ring::append_image (cairo_surface_t *surface, gint pixelwidth, gint pixelheight, glong left, glong top, glong cell_width, glong cell_height)
 {
-	Image *image;
+        Image *image;
 
-	image = new (std::nothrow) Image (vte::cairo::Surface(surface),
+        image = new (std::nothrow) Image (vte::cairo::Surface(surface),
                                           m_next_image_priority++,
                                           pixelwidth, pixelheight,
                                           left, top,
                                           cell_width, cell_height);
-	g_assert (image != NULL);
+        if (!image)
+                return;
 
-	m_image_by_top_map->insert (std::make_pair (image->get_top (), image));
+        m_image_by_top_map->insert (std::make_pair (image->get_top (), image));
         m_image_priority_map->insert (std::make_pair (image->get_priority (), image));
-	m_image_fast_memory_used += image->resource_size ();
+        m_image_fast_memory_used += image->resource_size ();
 
         image_gc_region();
         image_gc();
-
-end:
-	/* noop */
-	;
 }
