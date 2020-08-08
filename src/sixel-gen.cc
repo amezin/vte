@@ -63,6 +63,21 @@ typedef struct
 Image;
 
 static int
+random_int_in_range (int min, int max)
+{
+        if (min == max)
+                return min;
+
+        if (min > max) {
+                int t = max;
+                max = min;
+                min = t;
+        }
+
+        return min + (random () % (max - min));
+}
+
+static int
 round_up_to_multiple (int n, int m)
 {
         n += m - 1;
@@ -363,21 +378,6 @@ typedef struct
         int term_cell_width, term_cell_height;
 }
 Options;
-
-static int
-random_int_in_range (int min, int max)
-{
-        if (min == max)
-                return min;
-
-        if (min > max) {
-                int t = max;
-                max = min;
-                min = t;
-        }
-
-        return min + (random () % (max - min));
-}
 
 static void
 cursor_to_offset (gint x, gint y, GString *gstr)
