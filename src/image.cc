@@ -21,6 +21,7 @@
 #include <glib.h>
 #include <stdio.h>
 #include "vteinternal.hh"
+
 #include "image.hh"
 
 namespace vte {
@@ -29,13 +30,17 @@ namespace image {
 
 /* Paint the image with provided cairo context */
 void
-Image::paint(cairo_t *cr, int offset_x, int offset_y, int cell_width, int cell_height) const noexcept
+Image::paint(cairo_t* cr,
+             int offset_x,
+             int offset_y,
+             int cell_width,
+             int cell_height) const noexcept
 {
-        double scale_x = 1.0, scale_y = 1.0;
-        double real_offset_x, real_offset_y;
+        auto scale_x = 1.0d;
+        auto scale_y = 1.0d;
 
-        real_offset_x = offset_x;
-        real_offset_y = offset_y;
+        auto real_offset_x = double(offset_x);
+        auto real_offset_y = double(offset_y);
 
         if (cell_width != m_cell_width || cell_height != m_cell_height) {
                 scale_x = cell_width / (double) m_cell_width;

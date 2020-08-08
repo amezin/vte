@@ -25,7 +25,7 @@ namespace vte {
 
 namespace image {
 
-struct Image {
+class Image {
 private:
         // Device-friendly Cairo surface
         vte::cairo::Surface m_surface{};
@@ -48,9 +48,12 @@ private:
 public:
         Image(vte::cairo::Surface&& surface,
               int priority,
-              int width_pixels, int height_pixels,
-              int col, int row,
-              int cell_width, int cell_height) noexcept
+              int width_pixels,
+              int height_pixels,
+              int col,
+              int row,
+              int cell_width,
+              int cell_height) noexcept
                 : m_surface{std::move(surface)},
                   m_priority{priority},
                   m_width_pixels{width_pixels},
@@ -62,6 +65,13 @@ public:
         {
         }
 
+        ~Image() = default;
+
+        Image(Image const&) = delete;
+        Image(Image&&) = delete;
+        Image operator=(Image const&) = delete;
+        Image operator=(Image&&) = delete;
+
         inline constexpr auto get_priority() const noexcept { return m_priority; }
         inline constexpr auto get_left() const noexcept { return m_left_cells; }
         inline auto get_top() const noexcept { return m_top_cells; }
@@ -69,15 +79,23 @@ public:
         inline constexpr auto get_width() const noexcept { return (m_width_pixels + m_cell_width - 1) / m_cell_width; }
         inline constexpr auto get_height() const noexcept { return (m_height_pixels + m_cell_height - 1) / m_cell_height; }
         inline auto get_bottom() const noexcept { return m_top_cells + get_height() - 1; }
-        inline auto resource_size() const noexcept {
+
+        inline auto resource_size() const noexcept
+        {
                 if (cairo_image_surface_get_stride(m_surface.get()) != 0)
                         return cairo_image_surface_get_stride(m_surface.get()) * m_height_pixels;
 
                 /* Not an image surface: Only the device knows for sure, so we guess */
                 return m_width_pixels * m_height_pixels * 4;
         }
-        void paint(cairo_t *cr, gint offset_x, gint offset_y, int cell_width, int cell_height) const noexcept;
-};
+
+        void paint(cairo_t* cr,
+                   int offset_x,
+                   int offset_y,
+                   int cell_width,
+                   int cell_height) const noexcept;
+
+}; // class Image
 
 } // namespace image
 
