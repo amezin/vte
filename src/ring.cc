@@ -113,7 +113,7 @@ Ring::~Ring()
 
 	g_free (m_array);
 
-        /* Clear sixel images */
+        /* Clear images */
         for (auto it = image_map->begin (); it != image_map->end (); ++it)
                 delete it->second;
         image_map->clear();
@@ -714,7 +714,7 @@ Ring::reset()
         m_start = m_writable = m_end;
         m_cached_row_num = (row_t)-1;
 
-        /* Clear sixel images */
+        /* Clear images */
         for (auto it = image_map->begin (); it != image_map->end (); ++it)
                 delete it->second;
         image_map->clear();
