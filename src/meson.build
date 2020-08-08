@@ -87,6 +87,13 @@ regex_sources = files(
   'regex.hh'
 )
 
+sixel_sources = files(
+  'image.cc',
+  'image.hh',
+  'sixelparser.cc',
+  'sixelparser.hh',
+)
+
 systemd_sources = files(
   'systemd.cc',
   'systemd.hh',
@@ -114,8 +121,6 @@ libvte_common_sources = debug_sources + glib_glue_sources + libc_glue_sources + 
   'fonts-pangocairo.cc',
   'fonts-pangocairo.hh',
   'gobject-glue.hh',
-  'image.cc',
-  'image.hh',
   'keymap.cc',
   'keymap.h',
   'minifont.cc',
@@ -128,8 +133,6 @@ libvte_common_sources = debug_sources + glib_glue_sources + libc_glue_sources + 
   'ring.hh',
   'ringview.cc',
   'ringview.hh',
-  'sixelparser.cc',
-  'sixelparser.hh',
   'spawn.cc',
   'spawn.hh',
   'utf8.cc',
@@ -167,6 +170,10 @@ endif
 
 if get_option('icu')
   libvte_common_sources += icu_sources
+endif
+
+if get_option('sixel')
+  libvte_common_sources += sixel_sources
 endif
 
 if systemd_dep.found()
@@ -463,17 +470,19 @@ test_refptr = executable(
   install: false,
 )
 
-test_sixel_sources = files(
-  'sixel-test.cc',
-)
+if get_option('sixel')
+  test_sixel_sources = files(
+    'sixel-test.cc',
+  )
 
-test_sixel = executable(
-  'test-sixel',
-  sources: test_sixel_sources,
-  dependencies: [glib_dep,],
-  include_directories: top_inc,
-  install: false,
-)
+  test_sixel = executable(
+    'test-sixel',
+    sources: test_sixel_sources,
+    dependencies: [glib_dep,],
+    include_directories: top_inc,
+    install: false,
+  )
+endif
 
 test_tabstops_sources = files(
   'tabstops-test.cc',

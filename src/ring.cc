@@ -25,6 +25,9 @@
 #include "vterowdata.hh"
 
 #include <string.h>
+
+#ifdef WITH_SIXEL
+
 #include <new>
 
 /* We should be able to hold a single fullscreen 4K image at most.
@@ -34,6 +37,8 @@
 /* Hard limit on number of images to keep around. This limits the impact
  * of potential issues related to algorithmic complexity. */
 #define IMAGE_FAST_COUNT_MAX 4096
+
+#endif /* WITH_SIXEL */
 
 /*
  * Copy the common attributes from VteCellAttr to VteStreamCellAttr or vice versa.
@@ -45,7 +50,10 @@ _attrcpy (void *dst, void *src)
 }
 
 using namespace vte::base;
+
+#ifdef WITH_SIXEL
 using namespace vte::image;
+#endif
 
 /*
  * VteRing: A buffer ring
@@ -96,29 +104,33 @@ Ring::Ring(row_t max_rows,
         auto empty_str = g_string_new_len("", 0);
         g_ptr_array_add(m_hyperlinks, empty_str);
 
-        m_image_by_top_map = new (std::nothrow) std::map<gint, Image *>();
+#ifdef WITH_SIXEL
+        m_image_by_top_map = new (std::nothrow) std::map<int, Image *>();
         m_image_priority_map = new (std::nothrow) std::map<int, Image *>();
         m_next_image_priority = 0;
         m_image_fast_memory_used = 0;
+#endif
 
 	validate();
 }
 
 Ring::~Ring()
 {
-	auto image_map = m_image_by_top_map;
-
 	for (size_t i = 0; i <= m_mask; i++)
 		_vte_row_data_fini (&m_array[i]);
 
 	g_free (m_array);
 
+#ifdef WITH_SIXEL
         /* Clear images */
+	auto image_map = m_image_by_top_map;
+
         for (auto it = image_map->begin (); it != image_map->end (); ++it)
                 delete it->second;
         image_map->clear();
         delete m_image_by_top_map;
         delete m_image_priority_map;
+#endif /* WITH_SIXEL */
 
 	if (m_has_streams) {
 		g_object_unref (m_attr_stream);
@@ -214,6 +226,8 @@ Ring::hyperlink_maybe_gc(row_t increment)
         if (m_hyperlink_maybe_gc_counter >= 65536)
                 hyperlink_gc();
 }
+
+#ifdef WITH_SIXEL
 
 void
 Ring::image_gc_region()
@@ -311,6 +325,8 @@ Ring::rewrap_images_in_range(std::map<int,Image*>::iterator &it,
 
         return true;
 }
+
+#endif /* WITH_SIXEL */
 
 /*
  * Find existing idx for the hyperlink or allocate a new one.
@@ -706,7 +722,9 @@ Ring::reset_streams(row_t position)
 Ring::row_t
 Ring::reset()
 {
+#ifdef WITH_SIXEL
         auto image_map = m_image_by_top_map;
+#endif
 
         _vte_debug_print (VTE_DEBUG_RING, "Reseting the ring at %lu.\n", m_end);
 
@@ -714,6 +732,7 @@ Ring::reset()
         m_start = m_writable = m_end;
         m_cached_row_num = (row_t)-1;
 
+#ifdef WITH_SIXEL
         /* Clear images */
         for (auto it = image_map->begin (); it != image_map->end (); ++it)
                 delete it->second;
@@ -721,6 +740,7 @@ Ring::reset()
         m_image_priority_map->clear();
         m_next_image_priority = 0;
         m_image_fast_memory_used = 0;
+#endif
 
         return m_end;
 }
@@ -1305,7 +1325,9 @@ Ring::rewrap(column_t columns,
 	gsize paragraph_len;  /* excluding trailing '\n' */
 	gsize attr_offset;
 	gsize old_ring_end;
+#ifdef WITH_SIXEL
 	auto image_it = m_image_by_top_map->begin();
+#endif
 
 	if (G_UNLIKELY(length() == 0))
 		return;
@@ -1441,8 +1463,10 @@ Ring::rewrap(column_t columns,
 							}
 						}
 
+#ifdef WITH_SIXEL
 						if (!rewrap_images_in_range(image_it, new_record.text_start_offset, text_offset, new_row_index))
 							goto err;
+#endif
 
 						new_row_index++;
 						new_record.text_start_offset = text_offset;
@@ -1493,8 +1517,10 @@ Ring::rewrap(column_t columns,
 			}
 		}
 
+#ifdef WITH_SIXEL
 		if (!rewrap_images_in_range(image_it, new_record.text_start_offset, paragraph_end_text_offset, new_row_index))
 			goto err;
+#endif
 
 		new_row_index++;
 		paragraph_start_text_offset = paragraph_end_text_offset;
@@ -1528,7 +1554,9 @@ Ring::rewrap(column_t columns,
 	g_free(marker_text_offsets);
 	g_free(new_markers);
 
+#ifdef WITH_SIXEL
 	rebuild_image_top_map();
+#endif
 
 	_vte_debug_print(VTE_DEBUG_RING, "Ring after rewrapping:\n");
         validate();
@@ -1634,6 +1662,8 @@ Ring::write_contents(GOutputStream* stream,
 	return true;
 }
 
+#ifdef WITH_SIXEL
+
 /**
  * Ring::append_image:
  * @surface: A Cairo surface object
@@ -1666,3 +1696,5 @@ Ring::append_image (cairo_surface_t *surface, gint pixelwidth, gint pixelheight,
         image_gc_region();
         image_gc();
 }
+
+#endif /* WITH_SIXEL */

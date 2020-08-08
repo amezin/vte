@@ -945,15 +945,13 @@ Terminal::move_cursor_down(vte::grid::row_t rows)
 }
 
 void
-Terminal::erase_characters(long count, bool use_basic)
+Terminal::erase_characters(long count,
+                           bool use_basic)
 {
 	VteCell *cell;
-        VteCell blank_cell;
 	long col, i;
 
         ensure_cursor_is_onscreen();
-
-        blank_cell = use_basic ? basic_cell : m_color_defaults;
 
 	/* Clear out the given number of characters. */
 	auto rowdata = ensure_row();
@@ -971,10 +969,10 @@ Terminal::erase_characters(long count, bool use_basic)
 					/* Replace this cell with the current
 					 * defaults. */
 					cell = _vte_row_data_get_writable (rowdata, col);
-                                        *cell = blank_cell;
+                                        *cell = use_basic ? basic_cell : m_color_defaults;
 				} else {
 					/* Add new cells until we have one here. */
-                                        _vte_row_data_fill (rowdata, &blank_cell, col + 1);
+                                        _vte_row_data_fill (rowdata, use_basic ? &basic_cell : &m_color_defaults, col + 1);
 				}
 			}
 		}
@@ -2379,7 +2377,11 @@ Terminal::DA1(vte::parser::Sequence const& seq)
         if (seq.collect1(0, 0) != 0)
                 return;
 
-        reply(seq, VTE_REPLY_DECDA1R, {65, 1, 9, 4});
+        reply(seq, VTE_REPLY_DECDA1R, {65, 1,
+#ifdef WITH_SIXEL
+                                       4,
+#endif
+                                       9});
 }
 
 void
@@ -4337,6 +4339,7 @@ Terminal::DECSIXEL(vte::parser::Sequence const& seq)
          * References: VT330
          */
 
+#ifdef WITH_SIXEL
         if (!m_sixel_enabled)
                 return;
 
@@ -4433,6 +4436,7 @@ Terminal::DECSIXEL(vte::parser::Sequence const& seq)
 			cursor_down(true);
 		}
 	}
+#endif /* WITH_SIXEL */
 }
 
 void
