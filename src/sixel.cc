@@ -548,7 +548,7 @@ sixel_parser_parse(sixel_state_t *st, unsigned char *p, size_t len)
 					if (st->pos_x + st->repeat_count > image->width)
 						st->repeat_count = image->width - st->pos_x;
 
-					if (st->repeat_count > 0 && st->pos_y - 5 < image->height) {
+					if (st->repeat_count > 0 && st->pos_y + 5 < image->height) {
 						bits = *p - '?';
 						if (bits != 0) {
 							sixel_vertical_mask = 0x01;
