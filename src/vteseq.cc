@@ -4417,6 +4417,8 @@ Terminal::DECSIXEL(vte::parser::Sequence const& seq)
 
 	for (i = 0; i < height; ++i) {
 		erase_characters(width, true);
+                set_hard_wrapped(top + i);
+
 		if (i == height - 1) {
 			if (m_modes_private.MINTTY_SIXEL_SCROLL_CURSOR_RIGHT())
 				move_cursor_forward(width);
