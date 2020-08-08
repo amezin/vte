@@ -589,20 +589,6 @@ Terminal::set_mode_private(int mode,
                 maybe_apply_bidi_attributes(VTE_BIDI_FLAG_AUTO);
                 break;
 
-#if 0
-        /* FIXME-hpj */
-
-        case vte::terminal::modes::Private::eSIXEL_DISPLAY_MODE:
-                /* 80: SIXEL display mode(DECSDM). */
-                break;
-        case vte::terminal::modes::Private::eSIXEL_USE_PRIVATE_REGISTER:
-                /* 1070: private color register mode. */
-                break;
-        case vtw::terminal::modes::Private::eSIXEL_SCROLLS_RIGHT:
-                /* 8452: SIXEL-scrolls-right mode. */
-                break;
-#endif
-
         default:
                 break;
         }
