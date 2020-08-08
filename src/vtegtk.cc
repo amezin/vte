@@ -1825,17 +1825,6 @@ vte_terminal_class_init(VteTerminalClass *klass)
                                      (GParamFlags) (G_PARAM_READABLE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
 
         /**
-         * VteTerminal:frozen-image-limit:
-         *
-         * This property indicates allowed max storage size for offscreen frozen images
-         */
-        pspecs[PROP_FROZEN_IMAGE_LIMIT] =
-                g_param_spec_ulong ("frozen-image-limit", NULL, NULL,
-                                    0, G_MAXULONG, VTE_DEFAULT_FROZEN_IMAGE_LIMIT,
-                                    (GParamFlags) (G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | G_PARAM_EXPLICIT_NOTIFY));
-
-
-        /**
          * VteTerminal:input-enabled:
          *
          * Controls whether the terminal allows user input. When user input is disabled,
@@ -5685,36 +5674,6 @@ catch (...)
 
 } // namespace glib
 } // namespace vte
-
-/**
- * vte_terminal_set_frozen_image_limit:
- * @terminal: a #VteTerminal
- * @limit: 0 to G_MAXINT
- *
- * Set allowed max storage size for offscreen frozen images
- */
-void
-vte_terminal_set_frozen_image_limit(VteTerminal *terminal, gulong limit)
-{
-        g_return_if_fail(VTE_IS_TERMINAL(terminal));
-
-        if (IMPL(terminal)->set_frozen_image_limit(limit))
-                g_object_notify_by_pspec(G_OBJECT(terminal), pspecs[PROP_FROZEN_IMAGE_LIMIT]);
-}
-
-/**
- * vte_terminal_get_frozen_image_limit:
- * @terminal: a #VteTerminal
- *
- * Get allowed max storage size for offscreen frozen images
- */
-gulong
-vte_terminal_get_frozen_image_limit(VteTerminal *terminal)
-{
-        g_return_val_if_fail(VTE_IS_TERMINAL(terminal), 0);
-
-        return IMPL(terminal)->m_frozen_image_limit;
-}
 
 /**
  * vte_terminal_set_images_enabled:

@@ -7389,14 +7389,6 @@ Terminal::set_cell_height_scale(double scale)
         return true;
 }
 
-bool
-Terminal::set_frozen_image_limit(gulong limit)
-{
-        m_frozen_image_limit = limit;
-
-        return true;
-}
-
 /* Read and refresh our perception of the size of the PTY. */
 void
 Terminal::refresh_size()
@@ -7733,8 +7725,7 @@ Terminal::Terminal(vte::platform::Widget* w,
         m_overline_position = 1;
         m_regex_underline_position = 1;
 
-        /* Image */
-        m_frozen_image_limit = VTE_DEFAULT_FROZEN_IMAGE_LIMIT;
+        /* Images */
         m_images_enabled = TRUE;
 
         reset_default_attributes(true);
