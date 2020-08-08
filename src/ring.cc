@@ -1636,15 +1636,15 @@ Ring::write_contents(GOutputStream* stream,
 
 /**
  * Ring::append_image:
- * @surface: a Cairo surface object
- * @pixelwidth: image width in pixels
- * @pixelheight: image height in pixels
- * @left: left position of image in cell unit
- * @top: left position of image in cell unit
- * @width: width of image in cell unit
- * @height: width of image in cell unit
+ * @surface: A Cairo surface object
+ * @pixelwidth: Image width in pixels
+ * @pixelheight: Image height in pixels
+ * @left: Left position of image in cell units
+ * @top: Top position of image in cell units
+ * @cell_width: Width of image in cell units
+ * @cell_height: Height of image in cell units
  *
- * Append an image into the internal image list.
+ * Append an image to the internal image list.
  */
 void
 Ring::append_image (cairo_surface_t *surface, gint pixelwidth, gint pixelheight, glong left, glong top, glong cell_width, glong cell_height)
