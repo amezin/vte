@@ -720,6 +720,7 @@ Ring::reset()
 	image_map->clear();
         m_image_priority_map->clear();
         m_next_image_priority = 0;
+        m_image_fast_memory_used = 0;
 
         return m_end;
 }
