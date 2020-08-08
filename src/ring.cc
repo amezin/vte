@@ -87,7 +87,9 @@ Ring::Ring(row_t max_rows,
         auto empty_str = g_string_new_len("", 0);
         g_ptr_array_add(m_hyperlinks, empty_str);
 
+        m_next_image_priority = 0;
         m_image_map = new (std::nothrow) std::map<gint, vte::image::Image *>();
+        m_image_priority_map = new (std::nothrow) std::map<int, vte::image::Image *>();
         m_image_onscreen_resource_counter = 0;
         m_image_offscreen_resource_counter = 0;
 
@@ -108,6 +110,7 @@ Ring::~Ring()
 		delete it->second;
 	image_map->clear();
 	delete m_image_map;
+        delete m_image_priority_map;
 
 	if (m_has_streams) {
 		g_object_unref (m_attr_stream);
@@ -610,6 +613,9 @@ Ring::reset()
 	for (auto it = image_map->begin (); it != image_map->end (); ++it)
 		delete it->second;
 	image_map->clear();
+        m_image_priority_map->clear();
+        m_next_image_priority = 0;
+
 	if (m_has_streams)
 		_vte_stream_reset (m_image_stream, _vte_stream_head (m_image_stream));
 
@@ -1556,6 +1562,7 @@ Ring::append_image (cairo_surface_t *surface, gint pixelwidth, gint pixelheight,
 	 *  +----------+ <- bottom position (key)
 	 */
 	m_image_map->insert (std::make_pair (image->get_bottom (), image));
+        m_image_priority_map->insert (std::make_pair (m_next_image_priority++, image));
 	m_image_onscreen_resource_counter += image->resource_size ();
 end:
 	/* noop */

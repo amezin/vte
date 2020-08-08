@@ -112,7 +112,10 @@ public:
 	row_t m_start{0};
         row_t m_end{0};
 
+        int m_next_image_priority;
+
         std::map<gint, vte::image::Image *> *m_image_map;
+        std::map<int, vte::image::Image *> *m_image_priority_map;
         gulong m_image_onscreen_resource_counter;
         gulong m_image_offscreen_resource_counter;
 
