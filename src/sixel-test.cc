@@ -15,12 +15,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "config.h"
+
 #include <assert.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
-#include <stdbool.h>
 #include <stdio.h>
 
 #include <termios.h>  /* TIOCGWINSZ */
@@ -519,7 +520,7 @@ random_fuzz (const Options *options, GString *gstr)
                 return;
 
         for (int i = 0; i < options->n_errors; i++) {
-                FuzzType fuzz_type = random () % FUZZ_MAX;
+                FuzzType fuzz_type = FuzzType(random () % FUZZ_MAX);
 
                 switch (fuzz_type) {
                         case FUZZ_REPLACE:

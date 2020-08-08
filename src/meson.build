@@ -463,14 +463,15 @@ test_refptr = executable(
   install: false,
 )
 
-test_sixels_sources = files(
-  'test-sixels.c'
+test_sixel_sources = files(
+  'sixel-test.cc',
 )
 
-test_sixels = executable(
-  'test-sixels',
-  sources: test_sixels_sources,
-  dependencies: [glib_dep],
+test_sixel = executable(
+  'test-sixel',
+  sources: test_sixel_sources,
+  dependencies: [glib_dep,],
+  include_directories: top_inc,
   install: false,
 )
 
