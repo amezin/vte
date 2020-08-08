@@ -60,7 +60,7 @@ public:
                 return cairo_image_surface_get_stride(m_surface.get()) * m_pixelheight;
         }
         bool contains(const Image &other) const;
-        bool paint(cairo_t *cr, gint offsetx, gint offsety);
+        void paint(cairo_t *cr, gint offsetx, gint offsety);
 };
 
 } // namespace image

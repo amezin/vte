@@ -38,7 +38,7 @@ Image::contains(const Image &other) const
 }
 
 /* Paint the image with provided cairo context */
-bool
+void
 Image::paint(cairo_t *cr, int offsetx, int offsety)
 {
         cairo_save(cr);
@@ -47,8 +47,6 @@ Image::paint(cairo_t *cr, int offsetx, int offsety)
         cairo_set_source_surface(cr, m_surface.get(), offsetx, offsety);
         cairo_paint(cr);
         cairo_restore(cr);
-
-        return true;
 }
 
 } // namespace image
