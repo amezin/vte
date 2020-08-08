@@ -17,8 +17,8 @@
 #include <config.h>
 #include <glib.h>
 #include <stdio.h>
-#include "vteimage.h"
 #include "vteinternal.hh"
+#include "image.hh"
 
 namespace vte {
 

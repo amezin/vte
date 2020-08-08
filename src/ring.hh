@@ -27,7 +27,7 @@
 
 #include "vterowdata.hh"
 #include "vtestream.h"
-#include "vteimage.h"
+#include "image.hh"
 
 #include <type_traits>
 #include <map>
