@@ -207,7 +207,7 @@ Image::unite(Image *other, unsigned long cell_width, unsigned long cell_height)
         int offsetx = (m_left - new_left) * cell_width;
         int offsety = (m_top - new_top) * cell_height;
 
-        cairo_surface_t * new_surface = cairo_surface_create_similar(other->m_surface, CAIRO_CONTENT_COLOR_ALPHA, m_pixelwidth, m_pixelheight);
+        cairo_surface_t *new_surface = cairo_surface_create_similar(other->m_surface, CAIRO_CONTENT_COLOR_ALPHA, m_pixelwidth, m_pixelheight);
         cairo_t *cr = cairo_create(new_surface);
         cairo_rectangle(cr, offsetx, offsety, m_pixelwidth, m_pixelheight);
         cairo_clip(cr);
