@@ -27,8 +27,10 @@
 
 #include "vterowdata.hh"
 #include "vtestream.h"
+#include "vteimage.h"
 
 #include <type_traits>
+#include <map>
 
 typedef struct _VteVisualPosition {
 	long row, col;
@@ -89,6 +91,8 @@ public:
         VteRowData* insert(row_t position, guint8 bidi_flags);
         VteRowData* append(guint8 bidi_flags);
         void remove(row_t position);
+        void append_image (cairo_surface_t *surface, gint pixelwidth, gint pixelheight, glong left, glong top, glong width, glong height);
+        void shrink_image_stream ();
         void drop_scrollback(row_t position);
         void set_visible_rows(row_t rows);
         void rewrap(column_t columns,
@@ -97,6 +101,22 @@ public:
                             VteWriteFlags flags,
                             GCancellable* cancellable,
                             GError** error);
+
+        /* FIXME-hpj: These should be private, but are being accessed from the Terminal class for now:
+         *
+         * >>> */
+
+	bool m_has_streams;
+
+	row_t m_max;
+	row_t m_start{0};
+        row_t m_end{0};
+
+        std::map<gint, vte::image::image_object *> *m_image_map;
+        gulong m_image_onscreen_resource_counter;
+        gulong m_image_offscreen_resource_counter;
+
+        /* <<< */
 
 private:
 
@@ -183,10 +203,6 @@ private:
                       char const** hyperlink);
         void reset_streams(row_t position);
 
-	row_t m_max;
-	row_t m_start{0};
-        row_t m_end{0};
-
 	/* Writable */
 	row_t m_writable{0};
         row_t m_mask{31};
@@ -206,8 +222,7 @@ private:
          *    if nonempty, it actually contains the ID and URI separated with a semicolon. Not NUL terminated.
          *  - 2 bytes repeating attr.hyperlink_length so that we can walk backwards.
          */
-	bool m_has_streams;
-	VteStream *m_attr_stream, *m_text_stream, *m_row_stream;
+	VteStream *m_attr_stream, *m_text_stream, *m_row_stream, *m_image_stream;
 	size_t m_last_attr_text_start_offset{0};
 	VteCellAttr m_last_attr;
 	GString *m_utf8_buffer;

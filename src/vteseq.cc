@@ -35,6 +35,7 @@
 #include "vtegtk.hh"
 #include "caps.hh"
 #include "debug.h"
+#include "sixel.h"
 
 #define BEL_C0 "\007"
 #define ST_C0 _VTE_CAP_ST
@@ -588,6 +589,20 @@ Terminal::set_mode_private(int mode,
                                          set ? "enabled" : "disabled");
                 maybe_apply_bidi_attributes(VTE_BIDI_FLAG_AUTO);
                 break;
+
+#if 0
+        /* FIXME-hpj */
+
+        case vte::terminal::modes::Private::eSIXEL_DISPLAY_MODE:
+                /* 80: SIXEL display mode(DECSDM). */
+                break;
+        case vte::terminal::modes::Private::eSIXEL_USE_PRIVATE_REGISTER:
+                /* 1070: private color register mode. */
+                break;
+        case vtw::terminal::modes::Private::eSIXEL_SCROLLS_RIGHT:
+                /* 8452: SIXEL-scrolls-right mode. */
+                break;
+#endif
 
         default:
                 break;
@@ -2376,7 +2391,7 @@ Terminal::DA1(vte::parser::Sequence const& seq)
         if (seq.collect1(0, 0) != 0)
                 return;
 
-        reply(seq, VTE_REPLY_DECDA1R, {65, 1, 9});
+        reply(seq, VTE_REPLY_DECDA1R, {65, 1, 9, 4});
 }
 
 void
@@ -3058,6 +3073,153 @@ Terminal::DECIC(vte::parser::Sequence const& seq)
          *
          * Probably not worth implementing.
          */
+}
+
+#if 0
+static void
+vte_sequence_handler_device_control_string (VteTerminalPrivate *that, GValueArray *params)
+{
+	GValue *value;
+	char *dcs = NULL;
+	char *p;
+	glong cmd = 0;
+	gint param;
+	size_t nparams = 0;
+	gint dcsparams[DECSIXEL_PARAMS_MAX];
+
+	value = g_value_array_get_nth(params, 0);
+	if (!value)
+		return;
+	if (G_VALUE_HOLDS_STRING(value)) {
+		/* Copy the string into the buffer. */
+		dcs = g_value_dup_string(value);
+	}
+	else if (G_VALUE_HOLDS_POINTER(value)) {
+		dcs = that->ucs4_to_utf8((const guchar *)g_value_get_pointer (value));
+	}
+	if (! dcs)
+		return;
+
+	for (p = dcs; p; ++p) {
+		switch (*p) {
+		case ' ' ... '/':
+			cmd = cmd << 8 | *p;
+			if (cmd > (1 << 24))
+				goto end;
+			break;
+		case '0' ... '9':
+			if (param < 0)
+				param = 0;
+			param = param * 10 + *p - '0';
+			break;
+		case ';':
+			if (param < 0)
+				param = 0;
+			if (nparams < sizeof(dcsparams) / sizeof(dcsparams[0]))
+				dcsparams[nparams++] = param;
+			param = 0;
+			break;
+		case '@' ... '~':
+			cmd = cmd << 8 | *p;
+			goto dispatch;
+		default:
+		    goto end;
+		}
+	}
+
+dispatch:
+	switch (cmd) {
+	case 'q':
+		if (that->m_sixel_enabled)
+			that->seq_load_sixel(dcs);
+		break;
+	default:
+		break;
+	}
+
+end:
+	g_free(dcs);
+}
+#endif
+
+void
+Terminal::seq_load_sixel(char const* dcs)
+{
+	unsigned char *pixels = NULL;
+	auto fg = get_color(VTE_DEFAULT_FG);
+	auto bg = get_color(VTE_DEFAULT_BG);
+	int nfg = fg->red >> 8 | fg->green >> 8 << 8 | fg->blue >> 8 << 16;
+	int nbg = bg->red >> 8 | bg->green >> 8 << 8 | bg->blue >> 8 << 16;
+	glong left, top, width, height;
+	glong pixelwidth, pixelheight;
+	glong i;
+	cairo_surface_t *image_surface, *surface;
+	cairo_t *cr;
+
+	/* Parse images */
+	if (sixel_parser_init(&m_sixel_state, nfg, nbg, m_sixel_use_private_register) < 0) {
+		sixel_parser_deinit(&m_sixel_state);
+		return;
+	}
+	if (sixel_parser_parse(&m_sixel_state, (unsigned char *)dcs, strlen(dcs)) < 0) {
+		sixel_parser_deinit(&m_sixel_state);
+		return;
+	}
+	pixels = (unsigned char *)g_malloc(m_sixel_state.image.width * m_sixel_state.image.height * 4);
+	if (! pixels) {
+		sixel_parser_deinit(&m_sixel_state);
+		return;
+	}
+	if (sixel_parser_finalize(&m_sixel_state, pixels) < 0) {
+		sixel_parser_deinit(&m_sixel_state);
+		return;
+	}
+	sixel_parser_deinit(&m_sixel_state);
+
+	if (m_sixel_display_mode)
+		home_cursor();
+
+	/* Append new image to VteRing */
+	left = m_screen->cursor.col;
+	top = m_screen->cursor.row;
+	width = (m_sixel_state.image.width + m_cell_width - 1) / m_cell_width;
+	height = (m_sixel_state.image.height + m_cell_height - 1) / m_cell_height;
+	pixelwidth = m_sixel_state.image.width;
+	pixelheight = m_sixel_state.image.height;
+
+	/* create image surface (in-memory, device-independant) */
+	image_surface = cairo_image_surface_create_for_data (pixels, CAIRO_FORMAT_ARGB32, pixelwidth, pixelheight, pixelwidth * 4);
+	g_assert (image_surface);
+
+	/* create device-dependant surface compatible with m_widget */
+	surface = gdk_window_create_similar_surface (gtk_widget_get_window (m_widget), CAIRO_CONTENT_COLOR_ALPHA, pixelwidth, pixelheight);
+	g_assert (surface);
+
+	/* copy image surface to a device-compatible surface */
+	cr = cairo_create (surface);
+	cairo_set_source_surface (cr, image_surface, 0, 0);
+	cairo_paint (cr);
+	cairo_destroy (cr);
+	cairo_surface_destroy (image_surface);
+	free (pixels);
+
+	/* create image object */
+	m_screen->row_data->append_image (surface, pixelwidth, pixelheight, left, top, width, height);
+
+	/* Erase characters on the image */
+	for (i = 0; i < height; ++i) {
+		erase_characters(width);
+		if (i == height - 1) {
+			if (m_sixel_scrolls_right)
+				move_cursor_forward(width);
+			else
+				cursor_down(true);
+		} else {
+			cursor_down(true);
+		}
+	}
+	if (m_sixel_display_mode)
+		home_cursor();
 }
 
 void
@@ -8765,6 +8927,60 @@ Terminal::XTERM_WM(vte::parser::Sequence const& seq)
                 break;
         }
 }
+
+#if 0
+/* FIXME-hpj */
+
+/* graphics attributes */
+static void
+vte_sequence_handler_graphics_attributes(VteTerminalPrivate *that, GValueArray *params)
+{
+	if (params == NULL || params->n_values != 3) {
+		return;
+	}
+	GValue* value = g_value_array_get_nth(params, 0);
+	if (!G_VALUE_HOLDS_LONG(value)) {
+		return;
+	}
+	auto param = g_value_get_long(value);
+
+	char buf[128];
+	long arg1, arg2;
+	arg1 = arg2 = -1;
+	if (params->n_values > 1) {
+		value = g_value_array_get_nth(params, 1);
+		if (G_VALUE_HOLDS_LONG(value)) {
+			arg1 = g_value_get_long(value);
+		}
+	}
+	if (params->n_values > 2) {
+		value = g_value_array_get_nth(params, 2);
+		if (G_VALUE_HOLDS_LONG(value)) {
+			arg2 = g_value_get_long(value);
+		}
+	}
+
+	switch (arg1) {
+	case 1:
+		switch (arg2) {
+		case 1:
+			that->feed_child(_VTE_CAP_CSI "?1;0;256S", -1);
+			break;
+		case 2:
+			that->feed_child(_VTE_CAP_CSI "?1;0;256S", -1);
+			break;
+		case 3:
+			that->feed_child(_VTE_CAP_CSI "?1;3;0S", -1);
+			break;
+		default:
+			break;
+		}
+	default:
+                g_snprintf(buf, sizeof(buf), _VTE_CAP_CSI "?%ld;1;0S", arg1);
+		break;
+	}
+}
+#endif
 
 } // namespace terminal
 } // namespace vte

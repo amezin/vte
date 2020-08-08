@@ -81,6 +81,7 @@ enum {
         PROP_ENCODING,
         PROP_FONT_DESC,
         PROP_FONT_SCALE,
+        PROP_FREEZED_IMAGE_LIMIT,
         PROP_HYPERLINK_HOVER_URI,
         PROP_ICON_TITLE,
         PROP_INPUT_ENABLED,
@@ -93,6 +94,7 @@ enum {
         PROP_TEXT_BLINK_MODE,
         PROP_WINDOW_TITLE,
         PROP_WORD_CHAR_EXCEPTIONS,
+        PROP_SIXEL_ENABLED,
         LAST_PROP,
 
         /* override properties */

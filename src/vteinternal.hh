@@ -48,6 +48,7 @@
 
 #include "vtepcre2.h"
 #include "vteregexinternal.hh"
+#include "sixel.h"
 
 #include "chunk.hh"
 #include "pty.hh"
@@ -751,6 +752,14 @@ public:
         vte::glib::Timer m_mouse_autoscroll_timer{std::bind(&Terminal::mouse_autoscroll_timer_callback,
                                                             this),
                                                   "mouse-autoscroll-timer"};
+
+        /* SIXEL feature */
+        gboolean m_sixel_display_mode;
+        gboolean m_sixel_scrolls_right;
+        gboolean m_sixel_use_private_register;
+        sixel_state_t m_sixel_state;
+        gulong m_freezed_image_limit;
+        gboolean m_sixel_enabled;
 
 	/* State variables for handling match checks. */
         int m_match_regex_next_tag{0};
@@ -1503,12 +1512,14 @@ public:
                           GError** error);
         bool set_font_desc(PangoFontDescription const* desc);
         bool set_font_scale(double scale);
+        bool set_freezed_image_limit(gulong limit);
         bool set_input_enabled(bool enabled);
         bool set_mouse_autohide(bool autohide);
         bool set_rewrap_on_resize(bool rewrap);
         bool set_scrollback_lines(long lines);
         bool set_scroll_on_keystroke(bool scroll);
         bool set_scroll_on_output(bool scroll);
+        bool set_sixel_enabled(bool enabled);
         bool set_word_char_exceptions(std::optional<std::string_view> stropt);
         void set_clear_background(bool setting);
 
@@ -1585,6 +1596,7 @@ public:
                                    vte::grid::row_t end_row,
                                    vte::grid::column_t end_col);
 
+        void seq_load_sixel(char const* p);
         void subscribe_accessible_events();
         void select_text(vte::grid::column_t start_col,
                          vte::grid::row_t start_row,
@@ -1668,6 +1680,11 @@ public:
 #include "parser-cmd.hh"
 #undef _VTE_CMD
 #undef _VTE_NOP
+
+private:
+        void freeze_hidden_images_before_view_area(double start_pos, double end_pos);
+        void freeze_hidden_images_after_view_area(double start_pos, double end_pos);
+        void maybe_remove_images();
 };
 
 } // namespace terminal

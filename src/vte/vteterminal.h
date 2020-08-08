@@ -503,6 +503,24 @@ gboolean vte_terminal_write_contents_sync (VteTerminal *terminal,
                                            GCancellable *cancellable,
                                            GError **error) _VTE_CXX_NOEXCEPT _VTE_GNUC_NONNULL(1) _VTE_GNUC_NONNULL(2);
 
+/* Images */
+
+/* Set or get maximum storage size for offscreen freezed images */
+_VTE_PUBLIC
+void vte_terminal_set_freezed_image_limit(VteTerminal *terminal,
+                                          gulong limit) _VTE_GNUC_NONNULL(1);
+
+_VTE_PUBLIC
+gulong vte_terminal_get_freezed_image_limit(VteTerminal *terminal) _VTE_GNUC_NONNULL(1);
+
+/* Set or get whether the SIXEL graphics feature is enabled */
+_VTE_PUBLIC
+void vte_terminal_set_sixel_enabled (VteTerminal *terminal,
+                                     gboolean enabled) _VTE_GNUC_NONNULL(1);
+
+_VTE_PUBLIC
+gboolean vte_terminal_get_sixel_enabled (VteTerminal *terminal) _VTE_GNUC_NONNULL(1);
+
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(VteTerminal, g_object_unref)
 
 G_END_DECLS

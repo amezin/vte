@@ -3887,6 +3887,9 @@ Terminal::process_incoming_pcterm()
         /* After processing some data, do a hyperlink GC. The multiplier is totally arbitrary, feel free to fine tune. */
         _vte_ring_hyperlink_maybe_gc(m_screen->row_data, bytes_processed * 8);
 
+	if (m_sixel_enabled)
+		maybe_remove_images ();
+
 	_vte_debug_print (VTE_DEBUG_WORK, ")");
 	_vte_debug_print (VTE_DEBUG_IO,
                           "%" G_GSIZE_FORMAT " bytes in %" G_GSIZE_FORMAT " chunks left to process.\n",
@@ -4227,6 +4230,120 @@ Terminal::feed_child_binary(std::string_view const& data)
         /* If we need to start waiting for the child pty to
          * become available for writing, set that up here. */
         connect_pty_write();
+}
+
+void
+Terminal::maybe_remove_images ()
+{
+	VteRing *ring = m_screen->row_data;
+	auto image_map = ring->m_image_map;
+	vte::image::image_object *image;
+
+	auto it = image_map->begin();
+
+	/* step 1. collect images out of scroll-back area */
+	while (it != image_map->end()) {
+		/* image_map is sorted from oldest to new */
+		image = it->second;
+
+		/* break if the image is still in scrollback area */
+		if (image->get_bottom () >= (glong) ring->m_start)
+			break;
+
+		/* otherwise, delete it */
+		if (image->is_freezed ())
+			ring->m_image_offscreen_resource_counter -= image->resource_size ();
+		else
+			ring->m_image_onscreen_resource_counter -= image->resource_size ();
+		image_map->erase (image->get_bottom ());
+		delete image;
+		_vte_debug_print (VTE_DEBUG_IMAGE,
+		                  "deleted, offscreen: %zu\n",
+		                  ring->m_image_offscreen_resource_counter);
+	}
+
+	/* step 2. If the resource amount of freezed images (serialized into VteBoa)
+	 * exceeds the upper limit, remove images from oldest.
+	 */
+	if (ring->m_image_offscreen_resource_counter > m_freezed_image_limit) {
+		_vte_debug_print (VTE_DEBUG_IMAGE,
+		                  "checked, offscreen: %zu, max: %zu\n",
+		                  ring->m_image_offscreen_resource_counter,
+		                  m_freezed_image_limit);
+		while (it != image_map->end()) {
+			image = it->second;
+			++it;
+
+			/* remove */
+			image_map->erase (image->get_bottom ());
+			if (image->is_freezed ())
+				ring->m_image_offscreen_resource_counter -= image->resource_size ();
+			else
+				ring->m_image_onscreen_resource_counter -= image->resource_size ();
+			_vte_debug_print (VTE_DEBUG_IMAGE,
+			                  "deleted, offscreen: %zu\n",
+			                  ring->m_image_offscreen_resource_counter);
+			delete image;
+
+			/* break if the resource amount becomes less than limit */
+			if (ring->m_image_offscreen_resource_counter <= m_freezed_image_limit)
+				break;
+		}
+	}
+
+	/* step 3. shrink image stream with calling _vte_stream_advance_tail() */
+	if (ring->m_has_streams)
+		ring->shrink_image_stream ();
+}
+
+void
+Terminal::freeze_hidden_images_before_view_area (double start_pos, double end_pos)
+{
+	VteRing *ring = m_screen->row_data;
+	auto image_map = ring->m_image_map;
+	/* for images before view area */
+	vte::grid::row_t top_of_view = (vte::grid::row_t)start_pos;
+	typedef std::remove_pointer<decltype(ring->m_image_map)>::type map_t;
+
+	/* iterate from new to old */
+	for (auto it = map_t::reverse_iterator (image_map->lower_bound (top_of_view)); it != image_map->rend (); ++it) {
+		vte::image::image_object *image = it->second;
+		if (image->get_bottom () + 1 < end_pos)
+			break;
+		if (! image->is_freezed ()) {
+			ring->m_image_onscreen_resource_counter -= image->resource_size ();
+			image->freeze ();
+			ring->m_image_offscreen_resource_counter += image->resource_size ();
+			_vte_debug_print (VTE_DEBUG_IMAGE,
+			                  "freezed, onscreen: %zu, offscreen: %zu\n",
+			                  ring->m_image_onscreen_resource_counter,
+			                  ring->m_image_offscreen_resource_counter);
+		}
+	}
+}
+
+void
+Terminal::freeze_hidden_images_after_view_area (double start_pos, double end_pos)
+{
+	VteRing *ring = m_screen->row_data;
+	auto image_map = ring->m_image_map;
+	vte::grid::row_t bottom_of_view = (vte::grid::row_t)(start_pos + m_row_count);
+
+	/* for images after view area */
+	for (auto it = image_map->lower_bound (bottom_of_view); it != image_map->end (); ++it) {
+		vte::image::image_object *image = it->second;
+		if (image->get_top () < end_pos + m_row_count)
+			break;
+		if (image->get_top () > bottom_of_view && ! image->is_freezed ()) {
+			ring->m_image_onscreen_resource_counter -= image->resource_size ();
+			image->freeze ();
+			ring->m_image_offscreen_resource_counter += image->resource_size ();
+			_vte_debug_print (VTE_DEBUG_IMAGE,
+			                  "freezed, onscreen: %zu, offscreen: %zu\n",
+			                  ring->m_image_onscreen_resource_counter,
+			                  ring->m_image_offscreen_resource_counter);
+		}
+	}
 }
 
 void
@@ -7389,6 +7506,14 @@ Terminal::set_cell_height_scale(double scale)
         return true;
 }
 
+bool
+Terminal::set_freezed_image_limit(gulong limit)
+{
+        m_freezed_image_limit = limit;
+
+        return true;
+}
+
 /* Read and refresh our perception of the size of the PTY. */
 void
 Terminal::refresh_size()
@@ -7552,6 +7677,14 @@ Terminal::screen_set_size(VteScreen *screen_,
 		screen_->scroll_delta = new_scroll_delta;
 }
 
+bool
+Terminal::set_sixel_enabled(bool enabled)
+{
+        m_sixel_enabled = enabled;
+
+        return true;
+}
+
 void
 Terminal::set_size(long columns,
                              long rows)
@@ -7637,6 +7770,13 @@ Terminal::vadjustment_value_changed()
 	if (!_vte_double_equal(dy, 0)) {
 		_vte_debug_print(VTE_DEBUG_ADJ,
 			    "Scrolling by %f\n", dy);
+
+                if (dy > 0.0) {
+			freeze_hidden_images_before_view_area (adj, adj - dy);
+                } else {
+			freeze_hidden_images_after_view_area (adj, adj - dy);
+                }
+
                 invalidate_all();
                 match_contents_clear();
 		emit_text_scrolled(dy);
@@ -7716,6 +7856,10 @@ Terminal::Terminal(vte::platform::Widget* w,
         m_overline_position = 1;
         m_regex_underline_position = 1;
 
+        /* Image */
+        m_freezed_image_limit = VTE_DEFAULT_FREEZED_IMAGE_LIMIT;
+        m_sixel_enabled = TRUE;
+
         reset_default_attributes(true);
 
 	/* Set up the desired palette. */
@@ -7743,6 +7887,9 @@ Terminal::Terminal(vte::platform::Widget* w,
         /* Initialize the saved cursor. */
         save_cursor(&m_normal_screen);
         save_cursor(&m_alternate_screen);
+
+	/* Initialize SIXEL color register */
+	sixel_parser_set_default_color(&m_sixel_state);
 
 	/* Matching data. */
         m_match_span.clear(); // FIXMEchpe unnecessary
@@ -9196,6 +9343,7 @@ Terminal::widget_draw(cairo_t *cr)
         int allocated_width, allocated_height;
         int extra_area_for_cursor;
         bool text_blink_enabled_now;
+        VteRing *ring = m_screen->row_data;
         gint64 now = 0;
 
         if (!gdk_cairo_get_clip_rectangle (cr, &clip_rect))
@@ -9222,6 +9370,32 @@ Terminal::widget_draw(cairo_t *cr)
                                  allocated_width, allocated_height,
                                  get_color(VTE_DEFAULT_BG), m_background_alpha);
         }
+
+	/* Draw SIXEL images */
+	if (m_sixel_enabled) {
+		vte::grid::row_t top_row = first_displayed_row();
+		vte::grid::row_t bottom_row = last_displayed_row();
+		auto image_map = ring->m_image_map;
+		auto it = image_map->lower_bound (top_row);
+		for (; it != image_map->end (); ++it) {
+			vte::image::image_object *image = it->second;
+			if (image->get_top () > bottom_row)
+				break;
+			if (image->is_freezed ()) {
+				ring->m_image_offscreen_resource_counter -= image->resource_size ();
+				image->thaw ();
+				ring->m_image_onscreen_resource_counter += image->resource_size ();
+				_vte_debug_print (VTE_DEBUG_IMAGE,
+				                  "thawn, onscreen: %zu, offscreen: %zu\n",
+				                  ring->m_image_onscreen_resource_counter,
+				                  ring->m_image_offscreen_resource_counter);
+			}
+			/* Display images */
+			int x = m_padding.left + image->get_left () * m_cell_width;
+			int y = m_padding.top + (image->get_top () - m_screen->scroll_delta) * m_cell_height;
+			image->paint (cr, x, y);
+		}
+	}
 
         /* Clip vertically, for the sake of smooth scrolling. We want the top and bottom paddings to be unused.
          * Don't clip horizontally so that antialiasing can legally overflow to the right padding. */
@@ -9906,6 +10080,14 @@ Terminal::reset(bool clear_tabstops,
 	m_mouse_smooth_scroll_delta = 0.;
 	/* Clear modifiers. */
 	m_modifiers = 0;
+	/* Reset SIXEL display mode */
+	m_sixel_display_mode = FALSE;
+	/* Reset SIXEL-scrolls-right mode */
+	m_sixel_scrolls_right = FALSE;
+	/* Reset privae color register mode */
+	m_sixel_use_private_register = FALSE;
+	/* Reset SIXEL color register */
+	sixel_parser_set_default_color(&m_sixel_state);
         /* Reset the saved cursor. */
         save_cursor(&m_normal_screen);
         save_cursor(&m_alternate_screen);

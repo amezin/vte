@@ -25,6 +25,7 @@
 #include "vterowdata.hh"
 
 #include <string.h>
+#include <new>
 
 /*
  * Copy the common attributes from VteCellAttr to VteStreamCellAttr or vice versa.
@@ -74,6 +75,7 @@ Ring::Ring(row_t max_rows,
 		m_attr_stream = _vte_file_stream_new ();
 		m_text_stream = _vte_file_stream_new ();
 		m_row_stream = _vte_file_stream_new ();
+		m_image_stream = _vte_file_stream_new ();
 	} else {
 		m_attr_stream = m_text_stream = m_row_stream = nullptr;
 	}
@@ -86,20 +88,33 @@ Ring::Ring(row_t max_rows,
         auto empty_str = g_string_new_len("", 0);
         g_ptr_array_add(m_hyperlinks, empty_str);
 
+        m_image_map = new (std::nothrow) std::map<gint, vte::image::image_object *>();
+        m_image_onscreen_resource_counter = 0;
+        m_image_offscreen_resource_counter = 0;
+
 	validate();
 }
 
 Ring::~Ring()
 {
+	auto image_map = m_image_map;
+
 	for (size_t i = 0; i <= m_mask; i++)
 		_vte_row_data_fini (&m_array[i]);
 
 	g_free (m_array);
 
+	/* Clear SIXEL images */
+	for (auto it = image_map->begin (); it != image_map->end (); ++it)
+		delete it->second;
+	image_map->clear();
+	delete m_image_map;
+
 	if (m_has_streams) {
 		g_object_unref (m_attr_stream);
 		g_object_unref (m_text_stream);
 		g_object_unref (m_row_stream);
+		g_object_unref (m_image_stream);
 	}
 
 	g_string_free (m_utf8_buffer, TRUE);
@@ -585,11 +600,20 @@ Ring::reset_streams(row_t position)
 Ring::row_t
 Ring::reset()
 {
+	auto image_map = m_image_map;
+
         _vte_debug_print (VTE_DEBUG_RING, "Reseting the ring at %lu.\n", m_end);
 
         reset_streams(m_end);
         m_start = m_writable = m_end;
         m_cached_row_num = (row_t)-1;
+
+	/* Clear SIXEL images */
+	for (auto it = image_map->begin (); it != image_map->end (); ++it)
+		delete it->second;
+	image_map->clear();
+	if (m_has_streams)
+		_vte_stream_reset (m_image_stream, _vte_stream_head (m_image_stream));
 
         return m_end;
 }
@@ -1482,4 +1506,141 @@ Ring::write_contents(GOutputStream* stream,
 	}
 
 	return true;
+}
+
+/**
+ * Ring::append_image:
+ * @surface: a Cairo surface object
+ * @pixelwidth: image width in pixels
+ * @pixelheight: image height in pixels
+ * @left: left position of image in cell unit
+ * @top: left position of image in cell unit
+ * @width: width of image in cell unit
+ * @height: width of image in cell unit
+ *
+ * Append an image into the internal image list.
+ */
+void
+Ring::append_image (cairo_surface_t *surface, gint pixelwidth, gint pixelheight, glong left, glong top, glong width, glong height)
+{
+	using namespace vte::image;
+	image_object *image;
+	gulong char_width, char_height;
+
+	image = new (std::nothrow) image_object (surface, pixelwidth, pixelheight, left, top, width, height, m_image_stream);
+	g_assert_true (image != NULL);
+
+	char_width = pixelwidth / width;
+	char_height = pixelwidth / height;
+
+	/* composition */
+	for (auto it = m_image_map->lower_bound (top); it != m_image_map->end (); ++it) {
+		image_object *current = it->second;
+
+		/* Combine two images if one's area includes another's area */
+		if (image->includes (current)) {
+			/*
+			 * Replace current image with new image
+			 *
+			 *  +--------------+
+			 *  |     new      |
+			 *  | ...........  |
+			 *  | : current :  |
+			 *  | :.........:  |
+			 *  +--------------+
+			 */
+			m_image_map->erase (image->get_bottom ());
+			if (current->is_freezed())
+				m_image_offscreen_resource_counter -= current->resource_size ();
+			else
+				m_image_onscreen_resource_counter -= current->resource_size ();
+			delete current;
+		} else if (current->includes (image)) {
+			/*
+			 * Copy new image to current image's sub-area.
+			 *
+			 *  +--------------+
+			 *  | +-----+      |
+			 *  | | new |      |
+			 *  | +-----+      |
+			 *  |    current   |
+			 *  +--------------+
+			 */
+			if (current->is_freezed()) {
+				m_image_offscreen_resource_counter -= current->resource_size ();
+				current->thaw ();
+			} else {
+				m_image_onscreen_resource_counter -= current->resource_size ();
+			}
+			current->combine (image, char_width, char_height);
+			m_image_onscreen_resource_counter += current->resource_size ();
+			delete image;
+			goto end;
+		}
+
+		if ((current->get_bottom () - image->get_bottom ()) * (current->get_top () - image->get_top ()) <= 0) {
+                        /*
+			 * Unite two images if one's [top, bottom] includes another's [top, bottom].
+			 * This operation ensures bottom-position-based order is same to top-position-based order.
+			 *
+			 *              +------+
+			 *  +---------+ |      |
+			 *  | current | | new  |
+			 *  |         | |      |
+			 *  +---------+ |      |
+			 *              +------+
+			 *  or
+			 *
+			 *  +---------+
+			 *  | current | +------+
+			 *  |         | | new  |
+			 *  |         | +------+
+			 *  +---------+
+			 *          |
+			 *          v
+			 *  +------------------+
+			 *  | new (united)     |
+			 *  |                  |
+			 *  +------------------+
+			 */
+			image->unite (image, char_width, char_height);
+			m_image_map->erase (current->get_bottom ());
+			if (current->is_freezed())
+				m_image_offscreen_resource_counter -= current->resource_size ();
+			else
+				m_image_onscreen_resource_counter -= current->resource_size ();
+			delete current;
+			goto end;
+		}
+	}
+
+	/*
+	 * Now register new image to the m_image_map container.
+	 * the key is bottom positon.
+	 *  +----------+
+	 *  |   new    |
+	 *  |          |
+	 *  +----------+ <- bottom position (key)
+	 */
+	m_image_map->insert (std::make_pair (image->get_bottom (), image));
+	m_image_onscreen_resource_counter += image->resource_size ();
+end:
+	/* noop */
+	;
+}
+
+void
+Ring::shrink_image_stream ()
+{
+	using namespace vte::image;
+	image_object *first_image;
+
+	if (m_image_map->empty())
+		return;
+
+	first_image = m_image_map->begin()->second;
+
+	if (first_image->is_freezed ())
+		if (first_image->get_stream_position () > _vte_stream_tail (m_image_stream))
+			_vte_stream_advance_tail (m_image_stream, first_image->get_stream_position ());
 }
