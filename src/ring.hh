@@ -225,7 +225,7 @@ private:
          *    if nonempty, it actually contains the ID and URI separated with a semicolon. Not NUL terminated.
          *  - 2 bytes repeating attr.hyperlink_length so that we can walk backwards.
          */
-	VteStream *m_attr_stream, *m_text_stream, *m_row_stream, *m_image_stream;
+	VteStream *m_attr_stream, *m_text_stream, *m_row_stream;
 	size_t m_last_attr_text_start_offset{0};
 	VteCellAttr m_last_attr;
 	GString *m_utf8_buffer;

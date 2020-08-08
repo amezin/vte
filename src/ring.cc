@@ -616,9 +616,6 @@ Ring::reset()
         m_image_priority_map->clear();
         m_next_image_priority = 0;
 
-	if (m_has_streams)
-		_vte_stream_reset (m_image_stream, _vte_stream_head (m_image_stream));
-
         return m_end;
 }
 
