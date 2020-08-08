@@ -195,6 +195,9 @@ image_buffer_resize(
 	int n;
 	int min_height;
 
+        if (width == image->width && height == image->height)
+                return 0;
+
 	size = (size_t)(width * height) * sizeof(sixel_color_no_t);
 	alt_buffer = (sixel_color_no_t *)g_malloc(size);
 	if (alt_buffer == NULL) {
@@ -312,11 +315,11 @@ sixel_parser_finalize(sixel_state_t *st, unsigned char *pixels)
 	sx = st->max_x;
 	sy = st->max_y;
 
-	if (image->width > sx || image->height > sy) {
-		status = image_buffer_resize(image, sx, sy);
-		if (status < 0)
-			goto end;
-	}
+        status = image_buffer_resize(image,
+                                     MIN (image->width, sx),
+                                     MIN (image->height, sy));
+        if (status < 0)
+                goto end;
 
 	if (image->use_private_register && image->ncolors > 2 && !image->palette_modified) {
 		status = set_default_color(image);
