@@ -755,8 +755,6 @@ public:
 
         /* Inline images */
         gboolean m_images_enabled;
-
-        gboolean m_sixel_scrolls_right;
         sixel_state_t m_sixel_state;
 
 	/* State variables for handling match checks. */
