@@ -9313,11 +9313,12 @@ Terminal::widget_draw(cairo_t *cr)
 	if (m_sixel_enabled) {
 		vte::grid::row_t top_row = first_displayed_row();
 		vte::grid::row_t bottom_row = last_displayed_row();
-		auto image_map = ring->m_image_map;
-		auto it = image_map->lower_bound (top_row);
+		auto image_map = ring->m_image_priority_map;
+		auto it = image_map->begin ();
 		for (; it != image_map->end (); ++it) {
 			vte::image::Image *image = it->second;
-			if (image->get_top () > bottom_row)
+                        if (image->get_bottom() < top_row
+                            || image->get_top() > bottom_row)
 				break;
 			/* Display images */
 			int x = m_padding.left + image->get_left () * m_cell_width;
