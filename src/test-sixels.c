@@ -462,6 +462,81 @@ print_random_text (const Options *options, GString *gstr)
         print_text ("Hallo!", gstr);
 }
 
+typedef enum
+{
+        FUZZ_REPLACE,
+        FUZZ_COPY,
+        FUZZ_SWAP,
+
+        FUZZ_MAX
+}
+FuzzType;
+
+static void
+fuzz_replace (GString *gstr)
+{
+        int a, b;
+
+        a = random_int_in_range (0, gstr->len - 1);
+        b = a + random_int_in_range (0, MIN (gstr->len - a, 64));
+
+        for (int i = a; i < b; i++) {
+                gstr->str [i] = random_int_in_range (1, 256);
+        }
+}
+
+static void
+fuzz_copy (GString *gstr)
+{
+        int a, b, c;
+
+        a = random_int_in_range (0, gstr->len - 1);
+        b = random_int_in_range (0, MIN (gstr->len - a, 64));
+        c = random_int_in_range (0, gstr->len - b);
+
+        memcpy (gstr->str + c, gstr->str + a, b);
+}
+
+static void
+fuzz_swap (GString *gstr)
+{
+        unsigned char buf [64];
+        int a, b, c;
+
+        a = random_int_in_range (0, gstr->len - 1);
+        b = random_int_in_range (0, MIN (gstr->len - a, 64));
+        c = random_int_in_range (0, gstr->len - b);
+
+        memcpy (buf, gstr->str + c, b);
+        memcpy (gstr->str + c, gstr->str + a, b);
+        memcpy (gstr->str + c, buf, b);
+}
+
+static void
+random_fuzz (const Options *options, GString *gstr)
+{
+        if (gstr->len < 1)
+                return;
+
+        for (int i = 0; i < options->n_errors; i++) {
+                FuzzType fuzz_type = random () % FUZZ_MAX;
+
+                switch (fuzz_type) {
+                        case FUZZ_REPLACE:
+                                fuzz_replace (gstr);
+                                break;
+                        case FUZZ_COPY:
+                                fuzz_copy (gstr);
+                                break;
+                        case FUZZ_SWAP:
+                                fuzz_swap (gstr);
+                                break;
+                        default:
+                                break;
+                }
+        }
+}
+
 static void
 print_loop (const Options *options)
 {
@@ -477,6 +552,8 @@ print_loop (const Options *options)
                 } else {
                         print_random_text (options, gstr);
                 }
+
+                random_fuzz (options, gstr);
 
                 fwrite (gstr->str, sizeof (char), gstr->len, stdout);
                 g_string_free (gstr, TRUE);
