@@ -505,13 +505,13 @@ gboolean vte_terminal_write_contents_sync (VteTerminal *terminal,
 
 /* Images */
 
-/* Set or get maximum storage size for offscreen freezed images */
+/* Set or get maximum storage size for offscreen frozen images */
 _VTE_PUBLIC
-void vte_terminal_set_freezed_image_limit(VteTerminal *terminal,
+void vte_terminal_set_frozen_image_limit(VteTerminal *terminal,
                                           gulong limit) _VTE_GNUC_NONNULL(1);
 
 _VTE_PUBLIC
-gulong vte_terminal_get_freezed_image_limit(VteTerminal *terminal) _VTE_GNUC_NONNULL(1);
+gulong vte_terminal_get_frozen_image_limit(VteTerminal *terminal) _VTE_GNUC_NONNULL(1);
 
 /* Set or get whether the SIXEL graphics feature is enabled */
 _VTE_PUBLIC

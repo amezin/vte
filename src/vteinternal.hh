@@ -758,7 +758,7 @@ public:
         gboolean m_sixel_scrolls_right;
         gboolean m_sixel_use_private_register;
         sixel_state_t m_sixel_state;
-        gulong m_freezed_image_limit;
+        gulong m_frozen_image_limit;
         gboolean m_sixel_enabled;
 
 	/* State variables for handling match checks. */
@@ -1512,7 +1512,7 @@ public:
                           GError** error);
         bool set_font_desc(PangoFontDescription const* desc);
         bool set_font_scale(double scale);
-        bool set_freezed_image_limit(gulong limit);
+        bool set_frozen_image_limit(gulong limit);
         bool set_input_enabled(bool enabled);
         bool set_mouse_autohide(bool autohide);
         bool set_rewrap_on_resize(bool rewrap);

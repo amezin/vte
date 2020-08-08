@@ -75,7 +75,7 @@ Image::get_stream_position() const
 
 /* Indicate whether the image is serialized to the stream */
 bool
-Image::is_freezed() const
+Image::is_frozen() const
 {
 	return (m_surface == NULL);
 }
@@ -97,7 +97,7 @@ Image::resource_size() const
 {
 	size_t result_size;
 
-	if (is_freezed()) {
+	if (is_frozen()) {
 		/* If frozen, return the size sent to VteBoa. */
 		result_size = m_nwrite;
 	} else {
@@ -169,11 +169,11 @@ Image::combine(Image *other, gulong char_width, gulong char_height)
 	gulong offsetx = (other->m_left - m_left) * char_width;
 	gulong offsety = (other->m_top - m_top) * char_height;
 
-	if (is_freezed())
+	if (is_frozen())
 		if (!thaw())
 			return false;
 
-	if (other->is_freezed())
+	if (other->is_frozen())
 		if (!other->thaw())
 			return false;
 
@@ -190,7 +190,7 @@ Image::combine(Image *other, gulong char_width, gulong char_height)
 bool
 Image::unite(Image *other, gulong char_width, gulong char_height)
 {
-	if (is_freezed())
+	if (is_frozen())
 		if (!thaw())
 			return false;
 
@@ -228,7 +228,7 @@ Image::unite(Image *other, gulong char_width, gulong char_height)
 bool
 Image::paint(cairo_t *cr, gint offsetx, gint offsety)
 {
-	if (is_freezed())
+	if (is_frozen())
 		if (!thaw())
 			return false;
 

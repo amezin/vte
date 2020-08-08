@@ -43,7 +43,7 @@ public:
 	glong get_top() const;
 	glong get_bottom() const;
 	gulong get_stream_position() const;
-	bool is_freezed() const;
+	bool is_frozen() const;
 	bool includes(const Image *rhs) const;
 	size_t resource_size() const;
 	void freeze();

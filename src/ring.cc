@@ -1549,7 +1549,7 @@ Ring::append_image (cairo_surface_t *surface, gint pixelwidth, gint pixelheight,
 			 *  | :.........:  |
 			 *  +--------------+
 			 */
-			if (current->is_freezed())
+			if (current->is_frozen())
 				m_image_offscreen_resource_counter -= current->resource_size ();
 			else
 				m_image_onscreen_resource_counter -= current->resource_size ();
@@ -1569,7 +1569,7 @@ Ring::append_image (cairo_surface_t *surface, gint pixelwidth, gint pixelheight,
 			 *  |    current   |
 			 *  +--------------+
 			 */
-			if (current->is_freezed()) {
+			if (current->is_frozen()) {
 				m_image_offscreen_resource_counter -= current->resource_size ();
 				current->thaw ();
 			} else {
@@ -1608,7 +1608,7 @@ Ring::append_image (cairo_surface_t *surface, gint pixelwidth, gint pixelheight,
 			 */
 			image->unite (image, char_width, char_height);
 			m_image_map->erase (current->get_bottom ());
-			if (current->is_freezed())
+			if (current->is_frozen())
 				m_image_offscreen_resource_counter -= current->resource_size ();
 			else
 				m_image_onscreen_resource_counter -= current->resource_size ();
@@ -1645,7 +1645,7 @@ Ring::shrink_image_stream ()
 
 	first_image = m_image_map->begin()->second;
 
-	if (first_image->is_freezed ())
+	if (first_image->is_frozen ())
 		if (first_image->get_stream_position () > _vte_stream_tail (m_image_stream))
 			_vte_stream_advance_tail (m_image_stream, first_image->get_stream_position ());
 }
