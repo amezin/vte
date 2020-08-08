@@ -440,6 +440,15 @@ print_random_image (const Options *options, GString *gstr)
 }
 
 static void
+print_random_text (const Options *options, GString *gstr)
+{
+        cursor_to_random_offset (options->term_width_cells - strlen ("Hallo!"),
+                                 options->term_height_cells,
+                                 gstr);
+        print_text ("Hallo!", gstr);
+}
+
+static void
 print_loop (const Options *options)
 {
         for (int i = 0; options->n_frames == 0 || i < options->n_frames; i++) {
@@ -452,10 +461,7 @@ print_loop (const Options *options)
                 if (random () % 2) {
                         print_random_image (options, gstr);
                 } else {
-                        cursor_to_random_offset (options->term_width_cells - strlen ("Hallo!"),
-                                                 options->term_height_cells,
-                                                 gstr);
-                        print_text ("Hallo!", gstr);
+                        print_random_text (options, gstr);
                 }
 
                 fwrite (gstr->str, sizeof (char), gstr->len, stdout);
