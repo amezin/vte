@@ -4416,8 +4416,13 @@ Terminal::DECSIXEL(vte::parser::Sequence const& seq)
 	/* Erase characters under the image */
 
 	for (i = 0; i < height; ++i) {
+                vte::grid::row_t row = top + i;
+
 		erase_characters(width, true);
-                set_hard_wrapped(top + i);
+
+                if (row > m_screen->insert_delta - 1
+                    && row < m_screen->insert_delta + m_row_count)
+                        set_hard_wrapped(row);
 
 		if (i == height - 1) {
 			if (m_modes_private.MINTTY_SIXEL_SCROLL_CURSOR_RIGHT())
