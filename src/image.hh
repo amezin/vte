@@ -65,7 +65,11 @@ public:
         inline constexpr auto get_top() const noexcept { return m_top_cells; }
         inline constexpr auto get_bottom() const noexcept { return m_top_cells + m_height_cells - 1; }
         inline auto resource_size() const noexcept {
-                return cairo_image_surface_get_stride(m_surface.get()) * m_height_pixels;
+                if (cairo_image_surface_get_stride(m_surface.get()) != 0)
+                        return cairo_image_surface_get_stride(m_surface.get()) * m_height_pixels;
+
+                /* Not an image surface: Only the device knows for sure, so we guess */
+                return m_width_pixels * m_height_pixels * 4;
         }
         bool contains(const Image &other) const noexcept;
         void paint(cairo_t *cr, gint offset_x, gint offset_y) const noexcept;
