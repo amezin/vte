@@ -92,7 +92,6 @@ public:
         VteRowData* append(guint8 bidi_flags);
         void remove(row_t position);
         void append_image (cairo_surface_t *surface, gint pixelwidth, gint pixelheight, glong left, glong top, glong width, glong height);
-        void shrink_image_stream ();
         void drop_scrollback(row_t position);
         void set_visible_rows(row_t rows);
         void rewrap(column_t columns,
@@ -116,8 +115,7 @@ public:
 
         std::map<gint, vte::image::Image *> *m_image_map;
         std::map<int, vte::image::Image *> *m_image_priority_map;
-        gulong m_image_onscreen_resource_counter;
-        gulong m_image_offscreen_resource_counter;
+        unsigned int m_image_fast_memory_used;
 
         /* <<< */
 
@@ -132,6 +130,7 @@ private:
         inline VteRowData* get_writable_index(row_t position) const { return &m_array[position & m_mask]; }
 
         void hyperlink_gc();
+        void image_gc();
         hyperlink_idx_t get_hyperlink_idx_no_update_current(char const* hyperlink);
 
         typedef struct _CellAttrChange {

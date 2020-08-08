@@ -27,6 +27,14 @@
 #include <string.h>
 #include <new>
 
+/* We should be able to hold a single fullscreen 4K image at most.
+ * 35MiB equals 3840 * 2160 * 4 plus a little extra. */
+#define IMAGE_FAST_MEMORY_USED_MAX (35 * 1024 * 1024)
+
+/* Hard limit on number of images to keep around. This limits the impact
+ * of potential issues related to algorithmic complexity. */
+#define IMAGE_FAST_COUNT_MAX 4096
+
 /*
  * Copy the common attributes from VteCellAttr to VteStreamCellAttr or vice versa.
  */
@@ -90,8 +98,7 @@ Ring::Ring(row_t max_rows,
         m_next_image_priority = 0;
         m_image_map = new (std::nothrow) std::map<gint, vte::image::Image *>();
         m_image_priority_map = new (std::nothrow) std::map<int, vte::image::Image *>();
-        m_image_onscreen_resource_counter = 0;
-        m_image_offscreen_resource_counter = 0;
+        m_image_fast_memory_used = 0;
 
 	validate();
 }
@@ -205,6 +212,24 @@ Ring::hyperlink_maybe_gc(row_t increment)
 
         if (m_hyperlink_maybe_gc_counter >= 65536)
                 hyperlink_gc();
+}
+
+void
+Ring::image_gc()
+{
+        while (m_image_fast_memory_used > IMAGE_FAST_MEMORY_USED_MAX
+               || m_image_priority_map->size() > IMAGE_FAST_COUNT_MAX) {
+                if (m_image_priority_map->empty()) {
+                        /* If this happens, we've miscounted somehow. */
+                        break;
+                }
+
+                vte::image::Image *image = m_image_priority_map->begin()->second;
+                m_image_fast_memory_used -= image->resource_size();
+                m_image_map->erase(image->get_bottom());
+                m_image_priority_map->erase(m_image_priority_map->begin());
+                delete image;
+        }
 }
 
 /*
@@ -1543,7 +1568,7 @@ Ring::append_image (cairo_surface_t *surface, gint pixelwidth, gint pixelheight,
 
 		/* Delete images that are completely covered by this image */
 		if (image->contains (*current)) {
-                        m_image_onscreen_resource_counter -= current->resource_size ();
+                        m_image_fast_memory_used -= current->resource_size ();
 
                         /* We must advance the iterator before erasure */
 			m_image_map->erase (it++);
@@ -1565,20 +1590,10 @@ Ring::append_image (cairo_surface_t *surface, gint pixelwidth, gint pixelheight,
 	 */
 	m_image_map->insert (std::make_pair (image->get_bottom (), image));
         m_image_priority_map->insert (std::make_pair (image->get_priority (), image));
-	m_image_onscreen_resource_counter += image->resource_size ();
+	m_image_fast_memory_used += image->resource_size ();
+
+        image_gc();
 end:
 	/* noop */
 	;
-}
-
-void
-Ring::shrink_image_stream ()
-{
-	using namespace vte::image;
-	Image *first_image;
-
-	if (m_image_map->empty())
-		return;
-
-	first_image = m_image_map->begin()->second;
 }
