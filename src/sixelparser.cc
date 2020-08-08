@@ -517,16 +517,16 @@ parser_feed_char(sixel_state_t *st, uint32_t raw)
 
         for (;;) {
                 switch (st->state) {
-                case PS_DECSIXEL:
+                case DECSIXEL_PS_DECSIXEL:
                         switch (raw) {
                         case 0x1b:
-                                return parser_transition(st, PS_ESC);
+                                return parser_transition(st, DECSIXEL_PS_ESC);
                         case '"':
-                                return parser_transition(st, PS_DECGRA);
+                                return parser_transition(st, DECSIXEL_PS_DECGRA);
                         case '!':
-                                return parser_transition(st, PS_DECGRI);
+                                return parser_transition(st, DECSIXEL_PS_DECGRI);
                         case '#':
-                                return parser_transition(st, PS_DECGCI);
+                                return parser_transition(st, DECSIXEL_PS_DECGCI);
                         case '$':
                                 /* DECGCR Graphics Carriage Return */
                                 return parser_action_decgcr(st);
@@ -536,11 +536,11 @@ parser_feed_char(sixel_state_t *st, uint32_t raw)
                         }
                         return parser_action_sixel_char(st, raw);
 
-                case PS_DECGRA:
+                case DECSIXEL_PS_DECGRA:
                         /* DECGRA Set Raster Attributes " Pan; Pad; Ph; Pv */
                         switch (raw) {
                         case 0x1b:
-                                return parser_transition(st, PS_ESC);
+                                return parser_transition(st, DECSIXEL_PS_ESC);
                         case '0' ... '9':
                                 return parser_push_param_ascii_dec_digit(st, raw);
                         case ';':
@@ -551,27 +551,27 @@ parser_feed_char(sixel_state_t *st, uint32_t raw)
                         status = parser_action_decgra(st);
                         if (status < 0)
                                 return status;
-                        parser_transition(st, PS_DECSIXEL);
+                        parser_transition(st, DECSIXEL_PS_DECSIXEL);
                         continue;
 
-                case PS_DECGRI:
+                case DECSIXEL_PS_DECGRI:
                         /* DECGRI Graphics Repeat Introducer ! Pn Ch */
                         switch (raw) {
                         case 0x1b:
-                                return parser_transition(st, PS_ESC);
+                                return parser_transition(st, DECSIXEL_PS_ESC);
                         case '0' ... '9':
                                 return parser_push_param_ascii_dec_digit(st, raw);
                         }
 
                         parser_action_decgri(st);
-                        parser_transition(st, PS_DECSIXEL);
+                        parser_transition(st, DECSIXEL_PS_DECSIXEL);
                         continue;
 
-                case PS_DECGCI:
+                case DECSIXEL_PS_DECGCI:
                         /* DECGCI Graphics Color Introducer # Pc; Pu; Px; Py; Pz */
                         switch (raw) {
                         case 0x1b:
-                                return parser_transition(st, PS_ESC);
+                                return parser_transition(st, DECSIXEL_PS_ESC);
                         case '0' ... '9':
                                 return parser_push_param_ascii_dec_digit(st, raw);
                         case ';':
@@ -580,10 +580,10 @@ parser_feed_char(sixel_state_t *st, uint32_t raw)
 
                         parser_collect_param(st);
                         parser_action_decgci(st);
-                        parser_transition(st, PS_DECSIXEL);
+                        parser_transition(st, DECSIXEL_PS_DECSIXEL);
                         continue;
 
-                case PS_ESC:
+                case DECSIXEL_PS_ESC:
                         /* The only escape code that can occur is end-of-input, "\x1b\\".
                          * When we get to this state, just consume the rest quietly. */
                         return 0;
@@ -598,13 +598,7 @@ sixel_parser_init(sixel_state_t *st,
 {
         int status = -1;
 
-        /* FIXME-hpj: This used to be PS_DCS, but the VTE sequence parses the
-         * initial parameters for us, up to and including the leading 'q'. We
-         * therefore skip directly to the PS_DECSIXEL state.
-         *
-         * We may need to pass the initial parameters to this parser. */
-
-        st->state = PS_DECSIXEL;
+        st->state = DECSIXEL_PS_DECSIXEL;
         st->pos_x = 0;
         st->pos_y = 0;
         st->max_x = 0;
