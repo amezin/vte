@@ -24,8 +24,11 @@ namespace vte {
 
 namespace image {
 
-/* Image implementation */
-Image::Image (cairo_surface_t *surface, gint pixelwidth, gint pixelheight, gint col, gint row, gint w, gint h, _VteStream *stream)
+Image::Image(cairo_surface_t *surface,
+             gint pixelwidth, gint pixelheight,
+             gint col, gint row,
+             gint w, gint h,
+             _VteStream *stream)
 {
 	m_pixelwidth = pixelwidth;
 	m_pixelheight = pixelheight;
@@ -36,52 +39,52 @@ Image::Image (cairo_surface_t *surface, gint pixelwidth, gint pixelheight, gint 
 	m_surface = surface;
 	m_stream = stream;
 
-	g_object_ref (m_stream);
+	g_object_ref(m_stream);
 }
 
-Image::~Image ()
+Image::~Image()
 {
-	if (m_surface)
-		cairo_surface_destroy (m_surface);
-	g_object_unref (m_stream);
+	if(m_surface)
+		cairo_surface_destroy(m_surface);
+	g_object_unref(m_stream);
 }
 
 glong
-Image::get_left () const
+Image::get_left() const
 {
 	return (glong)m_left;
 }
 
 glong
-Image::get_top () const
+Image::get_top() const
 {
 	return (glong)m_top;
 }
 
 glong
-Image::get_bottom () const
+Image::get_bottom() const
 {
 	return (glong)(m_top + m_height - 1);
 }
 
 gulong
-Image::get_stream_position () const
+Image::get_stream_position() const
 {
 	return m_position;
 }
 
 /* Indicate whether the image is serialized to the stream */
 bool
-Image::is_freezed () const
+Image::is_freezed() const
 {
 	return (m_surface == NULL);
 }
 
 /* Test whether this image includes given image */
 bool
-Image::includes (const Image *other) const
+Image::includes(const Image *other) const
 {
-	g_assert_true (other != NULL);
+	g_assert_true(other != NULL);
 
 	return other->m_left >= m_left &&
 	       other->m_top >= m_top &&
@@ -90,19 +93,16 @@ Image::includes (const Image *other) const
 }
 
 size_t
-Image::resource_size () const
+Image::resource_size() const
 {
 	size_t result_size;
 
-	if (is_freezed ()) {
-		/* If freezed, return the size sent to VteBoa.
-                 * In reality, it may be more compressed on the real storage.
-                 */
+	if (is_freezed()) {
+		/* If frozen, return the size sent to VteBoa. */
 		result_size = m_nwrite;
 	} else {
-		/* If not freezed, return the pixel buffer size
-                 * width x height x 4
-                 */
+		/* If not frozen, return the pixel buffer size
+                 * width * height * 4. */
 		result_size = m_pixelwidth * m_pixelheight * 4;
 	}
 
@@ -111,107 +111,107 @@ Image::resource_size () const
 
 /* Deserialize the cairo image from the temporary file */
 bool
-Image::thaw ()
+Image::thaw()
 {
 	if (m_surface)
 		return true;
-	if (m_position < _vte_stream_tail (m_stream))
+	if (m_position < _vte_stream_tail(m_stream))
 		return false;
 
 	m_nread = 0;
-	m_surface = cairo_image_surface_create_from_png_stream ((cairo_read_func_t)read_callback, this);
-	if (! m_surface)
+	m_surface = cairo_image_surface_create_from_png_stream((cairo_read_func_t)read_callback, this);
+	if (!m_surface)
 		return false;
 
 	return true;
 }
 
-/* Serialize the image for saving RAM */
+/* Serialize the image to save RAM */
 void
-Image::freeze ()
+Image::freeze()
 {
 	cairo_status_t status;
 	double x_scale, y_scale;
 
-	if (! m_surface)
+	if (!m_surface)
 		return;
 
-	m_position = _vte_stream_head (m_stream);
+	m_position = _vte_stream_head(m_stream);
 	m_nwrite = 0;
 
-	cairo_surface_get_device_scale (m_surface, &x_scale, &y_scale);
+	cairo_surface_get_device_scale(m_surface, &x_scale, &y_scale);
 	if (!_vte_double_equal(x_scale, 1.0) || !_vte_double_equal(y_scale, 1.0)) {
-		/* If device scale exceeds 1.0, large size of PNG image created with cairo_surface_write_to_png_stream()
-                 * So we need to convert m_surface into an image surface with resizing it.
-                 */
-		cairo_surface_t *image_surface = cairo_image_surface_create (CAIRO_FORMAT_ARGB32, m_pixelwidth, m_pixelheight);
-		cairo_t *cr = cairo_create (image_surface);
-		paint (cr, 0, 0);
-		cairo_destroy (cr);
-		cairo_surface_destroy (m_surface);
+		/* If device scale exceeds 1.0, the PNG image created by
+                 * cairo_surface_write_to_png_stream() may be large. We need to convert
+                 * m_surface into a new surface with neutral scale. */
+		cairo_surface_t *image_surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, m_pixelwidth, m_pixelheight);
+		cairo_t *cr = cairo_create(image_surface);
+		paint(cr, 0, 0);
+		cairo_destroy(cr);
+		cairo_surface_destroy(m_surface);
 		m_surface = image_surface;
 	}
-	status = cairo_surface_write_to_png_stream (m_surface, (cairo_write_func_t)write_callback, this);
+	status = cairo_surface_write_to_png_stream(m_surface, (cairo_write_func_t)write_callback, this);
 	if (status == CAIRO_STATUS_SUCCESS) {
-		cairo_surface_destroy (m_surface);
+		cairo_surface_destroy(m_surface);
 		m_surface = NULL;
 	}
 }
 
 /* Merge another image into this image */
 bool
-Image::combine (Image *other, gulong char_width, gulong char_height)
+Image::combine(Image *other, gulong char_width, gulong char_height)
 {
 	cairo_t *cr;
 
-	g_assert_true (other != NULL);
+	g_assert_true(other != NULL);
 
 	gulong offsetx = (other->m_left - m_left) * char_width;
 	gulong offsety = (other->m_top - m_top) * char_height;
 
-	if (is_freezed ())
-		if (! thaw ())
+	if (is_freezed())
+		if (!thaw())
 			return false;
 
-	if (other->is_freezed ())
-		if (! other->thaw ())
+	if (other->is_freezed())
+		if (!other->thaw())
 			return false;
 
-	cr = cairo_create (m_surface);
-	cairo_rectangle (cr, offsetx, offsety, m_pixelwidth, m_pixelheight);
-	cairo_clip (cr);
-	cairo_set_source_surface (cr, other->m_surface, offsetx, offsety);
-	cairo_paint (cr);
-	cairo_destroy (cr);
+	cr = cairo_create(m_surface);
+	cairo_rectangle(cr, offsetx, offsety, m_pixelwidth, m_pixelheight);
+	cairo_clip(cr);
+	cairo_set_source_surface(cr, other->m_surface, offsetx, offsety);
+	cairo_paint(cr);
+	cairo_destroy(cr);
 
 	return true;
 }
 
 bool
-Image::unite (Image *other, gulong char_width, gulong char_height)
+Image::unite(Image *other, gulong char_width, gulong char_height)
 {
-	if (is_freezed ())
-		if (! thaw ())
+	if (is_freezed())
+		if (!thaw())
 			return false;
 
-	gint new_left = std::min (m_left, other->m_left);
-	gint new_top = std::min (m_top, other->m_top);
-	gint new_width = std::max (m_left + m_width, other->m_left + other->m_width) - new_left;
-	gint new_height = std::max (m_top + m_height, other->m_top + other->m_width) - new_top;
+	gint new_left = std::min(m_left, other->m_left);
+	gint new_top = std::min(m_top, other->m_top);
+	gint new_width = std::max(m_left + m_width, other->m_left + other->m_width) - new_left;
+	gint new_height = std::max(m_top + m_height, other->m_top + other->m_width) - new_top;
 	gint pixelwidth = new_width * char_width;
 	gint pixelheight = new_height * char_height;
 	gint offsetx = (m_left - new_left) * char_width;
 	gint offsety = (m_top - new_top) * char_height;
 
-	cairo_surface_t * new_surface = cairo_surface_create_similar (other->m_surface, CAIRO_CONTENT_COLOR_ALPHA, m_pixelwidth, m_pixelheight);
-	cairo_t *cr = cairo_create (new_surface);
-	cairo_rectangle (cr, offsetx, offsety, m_pixelwidth, m_pixelheight);
-	cairo_clip (cr);
-	cairo_set_source_surface (cr, m_surface, offsetx, offsety);
-	cairo_paint (cr);
-	cairo_destroy (cr);
+	cairo_surface_t * new_surface = cairo_surface_create_similar(other->m_surface, CAIRO_CONTENT_COLOR_ALPHA, m_pixelwidth, m_pixelheight);
+	cairo_t *cr = cairo_create(new_surface);
+	cairo_rectangle(cr, offsetx, offsety, m_pixelwidth, m_pixelheight);
+	cairo_clip(cr);
+	cairo_set_source_surface(cr, m_surface, offsetx, offsety);
+	cairo_paint(cr);
+	cairo_destroy(cr);
 
-	cairo_surface_destroy (m_surface);
+	cairo_surface_destroy(m_surface);
 
 	m_left = new_left;
 	m_top = new_top;
@@ -221,50 +221,50 @@ Image::unite (Image *other, gulong char_width, gulong char_height)
 	m_pixelheight = pixelheight;
 	m_surface = new_surface;
 
-	return combine (other, char_width, char_height);
+	return combine(other, char_width, char_height);
 }
 
-/* Paint the image into given cairo rendering context */
+/* Paint the image with provided cairo context */
 bool
-Image::paint (cairo_t *cr, gint offsetx, gint offsety)
+Image::paint(cairo_t *cr, gint offsetx, gint offsety)
 {
-	if (is_freezed ())
-		if (! thaw ())
+	if (is_freezed())
+		if (!thaw())
 			return false;
 
-	cairo_save (cr);
-	cairo_rectangle (cr, offsetx, offsety, m_pixelwidth, m_pixelheight);
-	cairo_clip (cr);
-	cairo_set_source_surface (cr, m_surface, offsetx, offsety);
-	cairo_paint (cr);
-	cairo_restore (cr);
+	cairo_save(cr);
+	cairo_rectangle(cr, offsetx, offsety, m_pixelwidth, m_pixelheight);
+	cairo_clip(cr);
+	cairo_set_source_surface(cr, m_surface, offsetx, offsety);
+	cairo_paint(cr);
+	cairo_restore(cr);
 
 	return true;
 }
 
-/* callback routines for stream I/O */
+/* Callback routines for stream I/O */
 
 cairo_status_t
-Image::read_callback (void *closure, char *data, unsigned int length)
+Image::read_callback(void *closure, char *data, unsigned int length)
 {
 	Image *image = (Image *)closure;
 
-	g_assert_true (image != NULL);
+	g_assert_true(image != NULL);
 
-	_vte_stream_read (image->m_stream, image->m_position + image->m_nread, data, length);
+	_vte_stream_read(image->m_stream, image->m_position + image->m_nread, data, length);
 	image->m_nread += length;
 
 	return CAIRO_STATUS_SUCCESS;
 }
 
 cairo_status_t
-Image::write_callback (void *closure, const char *data, unsigned int length)
+Image::write_callback(void *closure, const char *data, unsigned int length)
 {
 	Image *image = (Image *)closure;
 
 	g_assert_true (image != NULL);
 
-	_vte_stream_append (image->m_stream, data, length);
+	_vte_stream_append(image->m_stream, data, length);
 	image->m_nwrite += length;
 
 	return CAIRO_STATUS_SUCCESS;

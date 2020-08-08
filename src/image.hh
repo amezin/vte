@@ -37,23 +37,23 @@ private:
 	size_t m_nwrite;            /* private use: for write callback */
 	cairo_surface_t *m_surface; /* internal cairo image */
 public:
-	explicit Image (cairo_surface_t *surface, gint pixelwidth, gint pixelheight, gint col, gint row, gint w, gint h, _VteStream *stream);
-	~Image ();
-	glong get_left () const;
-	glong get_top () const;
-	glong get_bottom () const;
-	gulong get_stream_position () const;
-	bool is_freezed () const;
-	bool includes (const Image *rhs) const;
-	size_t resource_size () const;
-	void freeze ();
-	bool thaw ();
-	bool combine (Image *rhs, gulong char_width, gulong char_height);
-	bool unite (Image *rhs, gulong char_width, gulong char_height);
-	bool paint (cairo_t *cr, gint offsetx, gint offsety);
+	explicit Image(cairo_surface_t *surface, gint pixelwidth, gint pixelheight, gint col, gint row, gint w, gint h, _VteStream *stream);
+	~Image();
+	glong get_left() const;
+	glong get_top() const;
+	glong get_bottom() const;
+	gulong get_stream_position() const;
+	bool is_freezed() const;
+	bool includes(const Image *rhs) const;
+	size_t resource_size() const;
+	void freeze();
+	bool thaw();
+	bool combine(Image *rhs, gulong char_width, gulong char_height);
+	bool unite(Image *rhs, gulong char_width, gulong char_height);
+	bool paint(cairo_t *cr, gint offsetx, gint offsety);
 public:
-	static cairo_status_t read_callback (void *closure, char *data, unsigned int length);
-	static cairo_status_t write_callback (void *closure, const char *data, unsigned int length);
+	static cairo_status_t read_callback(void *closure, char *data, unsigned int length);
+	static cairo_status_t write_callback(void *closure, const char *data, unsigned int length);
 };
 
 } // namespace image
