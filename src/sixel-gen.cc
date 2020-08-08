@@ -364,8 +364,17 @@ image_print_sixels (const Image *image, GString *gstr)
 
 /* --- Main loop and printing --- */
 
+typedef enum
+{
+        TEST_MODE_UNSET,
+        TEST_MODE_FUZZ
+}
+TestMode;
+
 typedef struct
 {
+        TestMode mode;
+
         float delay;
         int n_errors;
         int n_frames;
@@ -542,7 +551,9 @@ parse_options (Options *options, int argc, char **argv)
         int i;
 
         if (argc < 2) {
-                fprintf (stderr, "Usage: %s [options]\n\n"
+                fprintf (stderr, "Usage: %s <mode> [options]\n\n"
+                         "Modes:\n"
+                         "    fuzz        Perform fuzzing test.\n\n"
                          "Options:\n"
                          "    -d <float>  Delay between frames, in seconds (default: 0.0).\n"
                          "    -e <int>    Maximum number of random errors per frame (default: 0).\n"
@@ -553,9 +564,20 @@ parse_options (Options *options, int argc, char **argv)
                 goto out;
         }
 
-        for (i = 1; i + 1 < argc; ) {
+        for (i = 1; i < argc; ) {
                 const char *arg = argv [i];
-                const char *val = argv [i + 1];
+                const char *val;
+
+                if (!strcmp (arg, "fuzz")) {
+                        options->mode = TEST_MODE_FUZZ;
+                        i++;
+                        continue;
+                }
+
+                if (i + 1 >= argc)
+                        break;
+
+                val = argv [i + 1];
 
                 if (!strcmp (arg, "-d")) {
                         if (!parse_float (arg, val, &options->delay))
@@ -588,6 +610,11 @@ parse_options (Options *options, int argc, char **argv)
                 goto out;
         }
 
+        if (options->mode == TEST_MODE_UNSET) {
+                fprintf (stderr, "No test mode specified. Try \"fuzz\".\n");
+                goto out;
+        }
+
         result = TRUE;
 
 out:
@@ -608,6 +635,24 @@ query_terminal (Options *options)
         options->term_height_cells = wsz.ws_row;
         options->term_width_pixels = wsz.ws_xpixel;
         options->term_height_pixels = wsz.ws_ypixel;
+
+        if (options->term_width_cells < 4
+            || options->term_height_cells < 4) {
+                fprintf (stderr, "Terminal window is too small (must be greater than 4x4 cells).\n");
+                return FALSE;
+        }
+
+        if (options->term_width_pixels == 0
+            || options->term_height_pixels == 0) {
+                fprintf (stderr, "Terminal did not report its pixel size.\n");
+                return FALSE;
+        }
+
+        if (options->term_width_pixels < 16
+            || options->term_height_pixels < 16) {
+                fprintf (stderr, "Terminal window is too small (must be greater than 16x16 pixels).\n");
+                return FALSE;
+        }
 
         options->term_cell_width = wsz.ws_xpixel / wsz.ws_col;
         options->term_cell_height = wsz.ws_ypixel / wsz.ws_row;
