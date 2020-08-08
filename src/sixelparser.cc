@@ -325,55 +325,6 @@ parser_collect_param_or_zero(sixel_state_t *st)
         return 0;
 }
 
-static int
-parser_action_dcs_attributes(sixel_state_t *st)
-{
-        if (st->nparams > 0) {
-                /* Pn1 */
-                switch (st->params[0]) {
-                case 0:
-                case 1:
-                        st->attributed_pad = 2;
-                        break;
-                case 2:
-                        st->attributed_pad = 5;
-                        break;
-                case 3:
-                case 4:
-                        st->attributed_pad = 4;
-                        break;
-                case 5:
-                case 6:
-                        st->attributed_pad = 3;
-                        break;
-                case 7:
-                case 8:
-                        st->attributed_pad = 2;
-                        break;
-                case 9:
-                        st->attributed_pad = 1;
-                        break;
-                default:
-                        st->attributed_pad = 2;
-                        break;
-                }
-        }
-
-        if (st->nparams > 2) {
-                /* Pn3 */
-                if (st->params[2] == 0)
-                        st->params[2] = 10;
-                st->attributed_pan = st->attributed_pan * st->params[2] / 10;
-                st->attributed_pad = st->attributed_pad * st->params[2] / 10;
-                if (st->attributed_pan <= 0)
-                        st->attributed_pan = 1;
-                if (st->attributed_pad <= 0)
-                        st->attributed_pad = 1;
-        }
-
-        return 0;
-}
-
 static void
 draw_sixels(sixel_state_t *st, uint32_t bits)
 {
@@ -568,31 +519,6 @@ parser_feed_char(sixel_state_t *st, uint32_t raw)
 
         for (;;) {
                 switch (st->state) {
-                case PS_ESC:
-                        switch (raw) {
-                        case '\\':
-                        case 0x9c:
-                                return 0;
-                        case 'P':
-                                return parser_transition(st, PS_DCS);
-                        }
-                        return 0;
-
-                case PS_DCS:
-                        switch (raw) {
-                        case 0x1b:
-                                return parser_transition(st, PS_ESC);
-                        case '0' ... '9':
-                                return parser_push_param_ascii_dec_digit(st, raw);
-                        case ';':
-                                return parser_collect_param_or_zero(st);
-                        case 'q':
-                                parser_collect_param(st);
-                                parser_action_dcs_attributes(st);
-                                return parser_transition(st, PS_DECSIXEL);
-                        }
-                        return 0;
-
                 case PS_DECSIXEL:
                         switch (raw) {
                         case 0x1b:
@@ -658,6 +584,11 @@ parser_feed_char(sixel_state_t *st, uint32_t raw)
                         parser_action_decgci(st);
                         parser_transition(st, PS_DECSIXEL);
                         continue;
+
+                case PS_ESC:
+                        /* The only escape code that can occur is end-of-input, "\x1b\\".
+                         * When we get to this state, just consume the rest quietly. */
+                        return 0;
                 }
         } /* for (;;) */
 }

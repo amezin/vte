@@ -39,12 +39,11 @@ typedef struct sixel_image_buffer {
 } sixel_image_t;
 
 typedef enum parse_state {
-	PS_ESC        = 1,  /* ESC */
-	PS_DCS        = 2,  /* DCS */
-	PS_DECSIXEL   = 3,  /* DECSIXEL body part ", $, -, ? ... ~ */
-	PS_DECGRA     = 4,  /* DECGRA Set Raster Attributes " Pan; Pad; Ph; Pv */
-	PS_DECGRI     = 5,  /* DECGRI Graphics Repeat Introducer ! Pn Ch */
-	PS_DECGCI     = 6,  /* DECGCI Graphics Color Introducer # Pc; Pu; Px; Py; Pz */
+	PS_ESC = 1,   /* ESC */
+	PS_DECSIXEL,  /* DECSIXEL body part ", $, -, ? ... ~ */
+	PS_DECGRA,    /* DECGRA Set Raster Attributes " Pan; Pad; Ph; Pv */
+	PS_DECGRI,    /* DECGRI Graphics Repeat Introducer ! Pn Ch */
+	PS_DECGCI,    /* DECGCI Graphics Color Introducer # Pc; Pu; Px; Py; Pz */
 } parse_state_t;
 
 typedef struct parser_context {
@@ -53,8 +52,11 @@ typedef struct parser_context {
 	int pos_y;
 	int max_x;
 	int max_y;
+
+        /* Pixel aspect ratio; unused */
 	int attributed_pan;
 	int attributed_pad;
+
 	int attributed_ph;
 	int attributed_pv;
 	int repeat_count;
