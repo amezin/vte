@@ -4385,8 +4385,8 @@ Terminal::DECSIXEL(vte::parser::Sequence const& seq)
 
 	left = m_screen->cursor.col;
 	top = m_screen->cursor.row;
-	width = (m_sixel_state.image.width + m_cell_width - 1) / m_cell_width;
-	height = (m_sixel_state.image.height + m_cell_height - 1) / m_cell_height;
+	width = (m_sixel_state.image.width + m_cell_width_unscaled - 1) / m_cell_width_unscaled;
+	height = (m_sixel_state.image.height + m_cell_height_unscaled - 1) / m_cell_height_unscaled;
 	pixelwidth = m_sixel_state.image.width;
 	pixelheight = m_sixel_state.image.height;
 
@@ -4414,7 +4414,7 @@ Terminal::DECSIXEL(vte::parser::Sequence const& seq)
 
 	/* Append image to Ring */
 
-	m_screen->row_data->append_image(surface, pixelwidth, pixelheight, left, top, m_cell_width, m_cell_height);
+	m_screen->row_data->append_image(surface, pixelwidth, pixelheight, left, top, m_cell_width_unscaled, m_cell_height_unscaled);
 
 	/* Erase characters under the image */
 
@@ -8766,8 +8766,8 @@ Terminal::XTERM_WM(vte::parser::Sequence const& seq)
                 break;
 
         case VTE_XTERM_WM_GET_WINDOW_SIZE_PIXELS: {
-                int width = m_row_count * m_cell_height;
-                int height = m_column_count * m_cell_width;
+                int width = m_row_count * m_cell_height_unscaled;
+                int height = m_column_count * m_cell_width_unscaled;
                 reply(seq, VTE_REPLY_XTERM_WM, {4, height, width});
                 break;
         }
